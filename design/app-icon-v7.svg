@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="92" y="92" width="840" height="840" rx="218" fill="#19191C" stroke="#38383E" stroke-width="12"/>
+
+  <path fill="#F4F1EA" fill-rule="evenodd"
+        transform="translate(0 10) scale(.9)"
+        d="M218 286a54 54 0 0 1 54-54h158c139 0 238 84 238 208 0 126-99 211-238 211h-78v135a67 67 0 0 1-134 0V286Zm134 77v158h78c63 0 104-31 104-80 0-48-41-78-104-78h-78Z"/>
+
+  <!-- The center stem intentionally stops above the baseline -->
+  <path transform="translate(250 260) scale(.78)"
+        d="M520 700V480C520 400 650 400 650 500V620M650 500C650 400 790 400 790 510V700"
+        fill="none" stroke="#F4F1EA" stroke-width="100" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <path d="M636 318h118l-38-38m38 38-38 38"
+        fill="none" stroke="#C8AFE0" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
