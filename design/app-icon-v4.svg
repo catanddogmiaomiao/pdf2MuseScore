@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="92" y="92" width="840" height="840" rx="218" fill="#19191C" stroke="#38383E" stroke-width="12"/>
+
+  <!-- p occupies the upper-left and lower-left quadrants -->
+  <rect x="214" y="234" width="116" height="590" rx="58" fill="#F4F1EA"/>
+  <circle cx="400" cy="390" r="156" fill="#F4F1EA"/>
+  <circle cx="400" cy="390" r="68" fill="#19191C"/>
+
+  <!-- m sits independently in the lower-right quadrant -->
+  <path d="M620 794V620c0-58 38-88 80-88 43 0 50 34 50 88v174M750 620c0-58 38-88 80-88 43 0 50 34 50 88v174"
+        fill="none" stroke="#F4F1EA" stroke-width="70" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- retained conversion arrow in the open upper-right quadrant -->
+  <path d="M660 318h160m-54-54 54 54-54 54"
+        fill="none" stroke="#C8AFE0" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
