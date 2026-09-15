@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <defs>
+    <style>
+      .ui { font-family: "Noto Sans SC", "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+      .latin { font-family: "Segoe UI", "Noto Sans SC", sans-serif; }
+      .main { fill: #F4F1EA; }
+      .muted { fill: #98979F; }
+      .line { stroke: #35353B; stroke-width: 1.5; }
+      .label { fill: #B0AFB7; font-size: 17px; font-weight: 500; }
+      .field { fill: #F4F1EA; font-size: 18px; font-weight: 450; }
+    </style>
+  </defs>
+
+  <rect width="1536" height="1024" fill="#0D0D0F"/>
+  <rect x="18" y="16" width="1500" height="992" rx="16" fill="#131315" stroke="#3A3A40"/>
+
+  <!-- native title bar -->
+  <path d="M18 68H1518" stroke="#303035"/>
+  <rect x="36" y="28" width="28" height="28" rx="8" fill="#202024" stroke="#3A3A40"/>
+  <text x="42" y="49" class="latin main" font-size="16" font-weight="700">pm</text>
+  <text x="76" y="49" class="latin main" font-size="18" font-weight="600">PDF2Muse</text>
+  <path d="M1351 42h14" stroke="#B9B8BF" stroke-width="1.5"/>
+  <rect x="1414" y="35" width="14" height="14" rx="1" fill="none" stroke="#B9B8BF" stroke-width="1.5"/>
+  <path d="M1482 35l14 14m0-14l-14 14" stroke="#D4D2CD" stroke-width="1.5"/>
+
+  <!-- compact product header -->
+  <rect x="48" y="96" width="48" height="48" rx="14" fill="#1C1C20" stroke="#3A3A40"/>
+  <text x="58" y="129" class="latin main" font-size="25" font-weight="750" letter-spacing="-2">pm</text>
+  <text x="112" y="126" class="latin main" font-size="42" font-weight="650" letter-spacing="-1.8">pdf2muse</text>
+  <text x="113" y="154" class="ui muted" font-size="16" font-weight="450">PDF 乐谱转换</text>
+  <rect x="1378" y="106" width="108" height="44" rx="10" fill="#18181B" stroke="#44444A"/>
+  <circle cx="1403" cy="128" r="7" fill="none" stroke="#D6D3CC" stroke-width="1.6"/>
+  <path d="M1403 116v4m0 16v4m-12-12h4m16 0h4m-20.5-8.5l2.8 2.8m11.4 11.4l2.8 2.8m0-17l-2.8 2.8m-11.4 11.4l-2.8 2.8" stroke="#D6D3CC" stroke-width="1.5"/>
+  <text x="1422" y="134" class="ui main" font-size="17" font-weight="500">设置</text>
+
+  <!-- left import panel -->
+  <rect x="48" y="184" width="700" height="738" rx="14" fill="#19191C" stroke="#35353B"/>
+  <text x="76" y="226" class="ui main" font-size="22" font-weight="600">导入乐谱</text>
+  <rect x="76" y="250" width="644" height="526" rx="12" fill="#151518" stroke="#55555D" stroke-width="1.4" stroke-dasharray="7 8"/>
+
+  <!-- neutral document icon -->
+  <path d="M358 344h76l34 34v86a12 12 0 0 1-12 12h-98a12 12 0 0 1-12-12V356a12 12 0 0 1 12-12Z" fill="none" stroke="#E8E4DB" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M434 344v34h34M372 406h70m-70 22h70m-70 22h44" fill="none" stroke="#E8E4DB" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="398" y="538" text-anchor="middle" class="ui main" font-size="28" font-weight="560">拖放 PDF 乐谱</text>
+  <text x="398" y="574" text-anchor="middle" class="ui muted" font-size="18">或从电脑中选择文件</text>
+  <rect x="298" y="614" width="200" height="50" rx="11" fill="#F2EFE8"/>
+  <path d="M328 633v12m-6-6h12" stroke="#171719" stroke-width="2" stroke-linecap="round"/>
+  <text x="401" y="647" text-anchor="middle" class="ui" fill="#171719" font-size="18" font-weight="600">选择 PDF</text>
+
+  <!-- file row -->
+  <rect x="76" y="796" width="644" height="96" rx="12" fill="#151518" stroke="#35353B"/>
+  <rect x="96" y="817" width="44" height="54" rx="7" fill="#2A252E" stroke="#6D5C79"/>
+  <path d="M107 833h22m-22 9h22m-22 9h15" stroke="#C9B0DF" stroke-width="2" stroke-linecap="round"/>
+  <text x="160" y="837" class="latin main" font-size="18" font-weight="520">Violin Sonata.pdf</text>
+  <text x="160" y="864" class="ui muted" font-size="15">PDF 乐谱 · 已就绪</text>
+  <path d="M682 833l16 16m0-16l-16 16" stroke="#8B8A92" stroke-width="2"/>
+
+  <!-- right settings panel -->
+  <rect x="772" y="184" width="716" height="386" rx="14" fill="#19191C" stroke="#35353B"/>
+  <text x="800" y="226" class="ui main" font-size="22" font-weight="600">转换设置</text>
+  <text x="800" y="274" class="ui label">输出格式</text>
+  <rect x="800" y="288" width="660" height="52" rx="9" fill="#141416" stroke="#414147"/>
+  <text x="820" y="321" class="latin field">MusicXML (.mxl)</text>
+  <path d="M1427 308l8 8 8-8" fill="none" stroke="#C7C5C0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="800" y="377" class="ui label">保存位置</text>
+  <rect x="800" y="391" width="596" height="52" rx="9" fill="#141416" stroke="#414147"/>
+  <text x="820" y="424" class="ui field">与原文件相同的文件夹</text>
+  <rect x="1408" y="391" width="52" height="52" rx="9" fill="#17171A" stroke="#414147"/>
+  <path d="M1422 409h9l4 4h11v14h-24Z" fill="none" stroke="#DAD7D0" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="800" y="471" width="660" height="56" rx="10" fill="#C8AFE0"/>
+  <text x="1130" y="507" text-anchor="middle" class="ui" fill="#171719" font-size="20" font-weight="600">开始识别</text>
+  <text x="1130" y="552" text-anchor="middle" class="ui muted" font-size="15">转换后可在 MuseScore 中编辑和播放</text>
+
+  <!-- right status panel -->
+  <rect x="772" y="594" width="716" height="328" rx="14" fill="#19191C" stroke="#35353B"/>
+  <text x="800" y="636" class="ui main" font-size="22" font-weight="600">识别状态</text>
+  <circle cx="806" cy="676" r="6" fill="#77767D"/>
+  <text x="824" y="683" class="ui muted" font-size="17">等待开始</text>
+  <rect x="800" y="706" width="660" height="8" rx="4" fill="#2C2C31"/>
+  <path d="M800 746h660" stroke="#35353B"/>
+  <text x="800" y="784" class="ui main" font-size="17" font-weight="520">可疑小节</text>
+  <text x="1460" y="784" text-anchor="end" class="ui muted" font-size="15">识别完成后显示</text>
+  <rect x="800" y="813" width="456" height="54" rx="10" fill="#242428" stroke="#3C3C42"/>
+  <text x="1028" y="847" text-anchor="middle" class="ui" fill="#6D6C73" font-size="17">在 MuseScore 中打开</text>
+  <text x="1460" y="847" text-anchor="end" class="ui main" font-size="16" font-weight="500">查看日志  →</text>
+
+  <!-- footer -->
+  <path d="M48 950h1440" stroke="#303035"/>
+  <path d="M56 973h17v12H56Zm5 12v5m-7 0h21" fill="none" stroke="#98979F" stroke-width="1.7" stroke-linecap="round"/>
+  <text x="86" y="987" class="ui muted" font-size="14">免费 · 本地识别 · 无需上传</text>
+  <text x="1488" y="987" text-anchor="end" class="ui" fill="#66656C" font-size="13">界面概念稿</text>
+</svg>
+
