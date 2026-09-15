@@ -19,6 +19,19 @@ Audiveris、查看转换日志，以及识别完成后在 MuseScore Studio 中�
 
 首次运行会自动查找 Audiveris 和 MuseScore；如果没有找到，可在右上角“设置”中手动指定。
 
+## 打包 Windows 应用
+
+安装构建依赖并运行一键打包脚本：
+
+```powershell
+python -m pip install -r requirements-build.txt
+.\build.ps1
+```
+
+也可以双击 `build.cmd`。构建结果位于 `dist\PDF2Muse\PDF2Muse.exe`。
+当前采用 PyInstaller **onedir** 模式，启动更稳定，也便于检查 Qt 运行库；发布时需要分发整个
+`dist\PDF2Muse` 文件夹。应用本体不会打包 Audiveris 或 MuseScore，这两个程序继续由用户本地安装和配置。
+
 ## 当前阶段
 
 产品形态已确定为 **PyQt 桌面应用**。当前主视觉为克制的黑色界面、奶白文字和淡紫主按钮，
