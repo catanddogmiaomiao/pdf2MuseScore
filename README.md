@@ -9,8 +9,10 @@ Windows 本地 PDF 五线谱导入工具。目标流程：
 
 ## 当前阶段
 
-第一阶段：验证 Audiveris 的真实 PDF 转换能力。尚未开发产品 GUI、播放器或自动纠错。
-先证明识别结果有用，再编写 Python CLI、基础检查模块，最后决定是否开发 GUI。
+产品形态已确定为 **PyQt 桌面应用**。当前完成第一版主界面与图标视觉设计，
+下一步实现桌面交互并接入 Audiveris。识别后端仍需真实 PDF 验证，尚无成功转换结论。
+
+查看 [主界面与图标设计](design/DESIGN.md)。
 
 本机验证记录见 [首次验证](docs/first-validation.md)。
 
@@ -50,11 +52,11 @@ Windows 本地 PDF 五线谱导入工具。目标流程：
 
 ## 开发顺序
 
-1. 真实 PDF → 官方 Audiveris → MXL，记录识别问题。
-2. MuseScore 导入、编辑、播放验证，评估比手工录入省多少工作。
-3. 最小 Python 命令行入口和 `--open`；增加可配置的程序发现。
-4. 仅报告可疑小节，不自动修改识别结果。
-5. 识别效果验证可用后，再开发极简 Windows GUI。
+1. 主界面和图标视觉设计（已完成 v1）。
+2. 使用 PyQt 实现拖放、选择文件、输出设置、状态和日志。
+3. 接入官方 Audiveris，完成真实 PDF → MXL 验证，记录识别问题。
+4. 自动寻找 MuseScore，验证导入、音符编辑和播放。
+5. 增加可疑小节检查；只报告，不自动修改识别结果。
 
 第一阶段直接处理 PDF；图像预处理、声部筛选和批量转换留待后续实测决定。
 
@@ -63,4 +65,3 @@ Windows 本地 PDF 五线谱导入工具。目标流程：
 - [Audiveris CLI](https://audiveris.github.io/audiveris/_pages/guides/advanced/cli/)
 - [Audiveris 安装说明](https://audiveris.github.io/audiveris/_pages/tutorials/install/binaries/)
 - [MuseScore 命令行](https://handbook.musescore.org/appendix/command-line-usage)
-
