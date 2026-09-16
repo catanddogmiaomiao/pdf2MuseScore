@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 
 from .music_validator import ValidationConfig
 from .config import AppConfig
+from .review_ui import ReviewDialog
 from .converter import ConversionError, ConversionResult, convert_with_audiveris
 from .tools import find_audiveris, find_musescore, open_in_musescore
 
@@ -321,6 +322,7 @@ class MainWindow(QMainWindow):
         self.log_path: Path | None = None
         self.worker: ConversionWorker | None = None
         self.review_summary: Path | None = None
+        self.review_report: Path | None = None
         self._log_lines: list[str] = []
         self.setWindowTitle("PDF2Muse")
         self.setMinimumSize(980, 680)
@@ -484,7 +486,7 @@ class MainWindow(QMainWindow):
         log_button.clicked.connect(self._show_log)
         action_row.addWidget(self.open_button, 1)
         action_row.addWidget(log_button)
-        self.review_button = QPushButton("查看审谱报告")
+        self.review_button = QPushButton("打开审谱工作台")
         self.review_button.clicked.connect(self._show_review)
         layout.addWidget(self.review_button)
         layout.addLayout(action_row)
@@ -514,6 +516,7 @@ class MainWindow(QMainWindow):
         if self.worker and self.worker.isRunning():
             return
         self.review_summary = None
+        self.review_report = None
         if path.suffix.lower() != ".pdf" or not path.is_file():
             QMessageBox.warning(self, "无法导入", "请选择有效的 PDF 文件。")
             return
@@ -541,6 +544,7 @@ class MainWindow(QMainWindow):
         if self.worker and self.worker.isRunning():
             return
         self.review_summary = None
+        self.review_report = None
         self.pdf_path = self.output_path = None
         self.pdf_preview.clear()
         self.import_title.setText("导入乐谱")
@@ -585,6 +589,7 @@ class MainWindow(QMainWindow):
         self.output_path = None
         self._log_lines = []
         self.review_summary = None
+        self.review_report = None
         self.log_path = None
         self.worker = ConversionWorker(self.pdf_path, output_dir, audiveris)
         self.worker.validation_config = ValidationConfig(confirmed_annotation_only=self.annotation_only.isChecked())
@@ -612,6 +617,7 @@ class MainWindow(QMainWindow):
             self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
             self.suspect_summary.setText("未发现阻断转换的问题")
         self.review_summary = result.summary_file
+        self.review_report = result.report_file
         details = f"自动修复 {result.auto_fixed} · 待检查 {result.needs_review}"
         if result.skipped_pages:
             details += " · 跳过页 " + "、".join(map(str,result.skipped_pages))
@@ -632,7 +638,10 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, "识别失败", message)
 
     def _open_result(self) -> None:
-        if not self.output_path:
+        self._open_score(self.output_path)
+
+    def _open_score(self, path: Path | None) -> None:
+        if not path:
             return
         musescore = find_musescore(self.config.musescore_path)
         if not musescore:
@@ -640,22 +649,30 @@ class MainWindow(QMainWindow):
             self._show_settings()
             return
         try:
-            open_in_musescore(musescore, self.output_path)
+            open_in_musescore(musescore, path)
         except OSError as exc:
             QMessageBox.critical(self, "无法打开 MuseScore", str(exc))
 
     def _show_review(self) -> None:
-        if not self.review_summary:
+        report = self.review_report
+        if not report:
+            chosen, _ = QFileDialog.getOpenFileName(self, "打开已有审谱报告，无需重新识别", "", "审谱报告 (*.validation_report.json)")
+            if not chosen:
+                return
+            report = Path(chosen)
+        try:
+            dialog = ReviewDialog(report, self._open_score, self)
+        except (OSError, ValueError, KeyError) as exc:
+            QMessageBox.warning(self, "无法打开审谱报告", str(exc))
             return
-        dialog = QDialog(self)
-        dialog.setWindowTitle("审谱报告 · 请对照原谱检查")
-        dialog.resize(850, 600)
-        layout = QVBoxLayout(dialog)
-        text = QPlainTextEdit()
-        text.setReadOnly(True)
-        text.setPlainText(self.review_summary.read_text(encoding="utf-8"))
-        layout.addWidget(text)
+        self.review_report = report
         dialog.exec()
+        self.output_path = dialog.session.output
+        pending = sum(dialog.session.status(i) == '待核对' for i in dialog.session.report['issues'])
+        self.suspect_summary.setText(f"已修复 {len(dialog.session.fixed)} · 待核对 {pending}")
+        self.file_meta.setText(f"输出：{self.output_path.name}")
+        self.file_meta.setToolTip(str(self.output_path))
+        self._refresh_controls()
 
     def _show_log(self) -> None:
         dialog = QDialog(self)
@@ -675,7 +692,7 @@ class MainWindow(QMainWindow):
     def _refresh_controls(self) -> None:
         running = self.worker is not None and self.worker.isRunning()
         self.convert_button.setEnabled(bool(self.pdf_path) and not running)
-        self.review_button.setEnabled(bool(self.review_summary) and not running)
+        self.review_button.setEnabled(not running)
         self.annotation_only.setEnabled(not running)
         self.open_button.setEnabled(bool(self.output_path) and not running)
 

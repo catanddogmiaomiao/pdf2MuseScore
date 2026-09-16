@@ -18,6 +18,7 @@ class ValidationConfig:
     review_threshold: float = .60
     # Explicit user assertion: octave labels are OMR mistakes, pitches already correct.
     confirmed_annotation_only: bool = False
+    confirmed_issue_ids: tuple[str, ...] = ()
 
 
 @dataclass
@@ -231,12 +232,16 @@ def inspect(root: ET.Element, config: ValidationConfig) -> tuple[list[Issue], di
     return issues, targets
 
 
-def validate_score(source: Path, config: ValidationConfig | None = None) -> dict:
+def validate_score(source: Path, config: ValidationConfig | None = None, output_stem: Path | None = None) -> dict:
     config = config or ValidationConfig()
     root = read_score(source)
     original = copy.deepcopy(root)
     issues, targets = inspect(root, config)
     for issue in issues:
+        if issue.id in config.confirmed_issue_ids and issue.rule_id == 'CLEF_OCTAVE_ANOMALY':
+            issue.auto_fixable = True
+            issue.confidence = 1.0
+            issue.evidence['user_confirmed_annotation_only'] = True
         RuleReviewer().review(issue, {})
         if issue.auto_fixable and issue.confidence >= config.auto_fix_threshold:
             clef, octave = targets[issue.id]
@@ -248,9 +253,9 @@ def validate_score(source: Path, config: ValidationConfig | None = None) -> dict
     if [ET.tostring(p) for p in original.iter('pitch')] != [ET.tostring(p) for p in root.iter('pitch')]:
         raise ValueError('修复改变了 pitch，已拒绝输出')
     remaining, _ = inspect(root, ValidationConfig())
-    output = source.with_name(source.stem + '.validated.musicxml')
-    report = source.with_name(source.stem + '.validation_report.json')
-    summary = source.with_name(source.stem + '.validation_summary.txt')
+    output = Path(str(output_stem) + '.musicxml') if output_stem else source.with_name(source.stem + '.validated.musicxml')
+    report = Path(str(output_stem) + '.validation_report.json') if output_stem else source.with_name(source.stem + '.validation_report.json')
+    summary = Path(str(output_stem) + '.validation_summary.txt') if output_stem else source.with_name(source.stem + '.validation_summary.txt')
     result = {'schema_version':1, 'original_file':str(source), 'original_sha256':hashlib.sha256(source.read_bytes()).hexdigest(), 'validated_file':str(output), 'report_file':str(report), 'summary_file':str(summary), 'elements_scanned':sum(1 for _ in root.iter()), 'measure_count':len(root.findall('part/measure')), 'auto_fixed':sum(i.fixed for i in issues), 'needs_review':sum(not i.fixed and i.confidence >= config.review_threshold for i in issues), 'warnings':sum(not i.fixed and i.severity == 'WARNING' for i in issues), 'issues':[asdict(i) for i in issues], 'remaining_issues':len(remaining), 'config':asdict(config), 'limitations':['置信度为规则评分，不是统计概率','不检查所有音乐错误；谱号未知语义只报告','小节编号来自 OMR，可能与 PDF 不同','不猜测或修改 pitch、节奏、声部']}
     ET.indent(root)
     ET.ElementTree(root).write(output,encoding='utf-8',xml_declaration=True)

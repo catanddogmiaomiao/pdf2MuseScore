@@ -4,6 +4,23 @@
 
 ## 试用
 
+### 可操作的审谱工作台
+
+点击“打开审谱工作台”，选择具体问题，查看原值、建议和操作说明。
+可筛选谱号问题、待核对、已修复和已核对。
+对于单项谱号疑点，对照 PDF 后勾选确认，再点击“应用此项谱号修复”。
+修改立即保存到单独的 `.reviewed.musicxml`，支持逐项撤销。
+“标记已核对”只记录审核状态，不改乐谱，支持恢复待核对。
+操作与原因保存在 `.review-state.json`，下次打开继续审核。
+处理后的报告另存为 `.reviewed.validation_report.json`，含修复前后值。
+
+已有报告不需要重跑 OMR：未开始转换时点击工作台按钮，选择之前生成的
+`.validation_report.json`（不是 TXT 摘要），并保留它对应的原始 MXL。
+“打开原始 MXL”用于比较；“在 MuseScore 中打开处理结果”打开当前版本。
+节奏、休止符和音高疑点由用户在 MuseScore 按识别小节编号修改。
+本工具不能控制 MuseScore 光标定位，编号可能与 PDF 印刷编号不同。
+MuseScore 中修改后请另存 MSCZ，后续谱号修复/撤销会从原始 MXL 重新生成 reviewed 文件。
+
 选择 PDF 并开始识别。输出目录同时保留原始 MXL、`.validated.musicxml`、
 `.validation_report.json` 和 `.validation_summary.txt`。界面显示修复数量与待检查数量，
 点击“查看审谱报告”查看具体声部、小节、谱表、Voice、规则和理由。
