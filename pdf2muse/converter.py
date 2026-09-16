@@ -170,7 +170,7 @@ def convert_with_audiveris(
         if on_log:
             on_log("正在检查 MusicXML 音乐结构…")
         review = validate_score(destination, validation_config)
-        result = ConversionResult(Path(review["validated_file"]), time.perf_counter() - started, log_file, skipped_pages, destination, Path(review["report_file"]), Path(review["summary_file"]), review["auto_fixed"], review["needs_review"])
+        result = ConversionResult(Path(review["validated_file"]), time.perf_counter() - started, log_file, skipped_pages, destination, Path(review["report_file"]), Path(review["summary_file"]), review["auto_fixed"], review["review_measure_count"])
     except Exception as exc:
         notice = f"审谱失败，已保留原始识别结果：{exc}"
         if on_log:

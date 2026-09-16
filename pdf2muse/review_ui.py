@@ -23,6 +23,10 @@ class ReviewDialog(QDialog):
         self.filter.setCurrentText('待核对')
         self.filter.currentIndexChanged.connect(self.populate)
         toolbar.addWidget(self.filter)
+        self.batch = QPushButton('统一处理谱号')
+        self.batch.clicked.connect(self.batch_clefs)
+        toolbar.addWidget(self.batch)
+        self.last_batch = []
         toolbar.addStretch()
         original = QPushButton('打开原始乐谱')
         original.clicked.connect(lambda: self.open_score(self.session.source))
@@ -83,23 +87,21 @@ class ReviewDialog(QDialog):
         selected = self.current()
         selected_id = selected['id'] if selected else None
         self.table.blockSignals(True)
-        self.visible = []
-        for issue in self.session.report['issues']:
-            status = self.session.status(issue)
-            mode = self.filter.currentText()
-            if mode in ('待核对','已修复','已核对') and status != mode: continue
-            if mode == '谱号问题' and issue['rule_id'] != 'CLEF_OCTAVE_ANOMALY': continue
-            self.visible.append(issue)
+        self.issue_groups = self.session.groups(self.filter.currentText())
+        self.visible = [group[0] for group in self.issue_groups]
         self.table.setRowCount(len(self.visible))
         for row, issue in enumerate(self.visible):
-            for col,text in enumerate([f"{issue['part_id']} · {issue['measure_number']} / {issue['staff']}",issue['message'],self.session.status(issue)]):
+            messages = list(dict.fromkeys(i['message'] for i in self.issue_groups[row]))
+            text_summary = messages[0] + (f'（另 {len(messages)-1} 项）' if len(messages)>1 else '')
+            for col,text in enumerate([f"{issue['part_id']} · {issue['measure_number']} / {issue['staff']}",text_summary,self.session.status(issue)]):
                 self.table.setItem(row,col,QTableWidgetItem(text))
         self.table.blockSignals(False)
         row = next((r for r,i in enumerate(self.visible) if i['id']==selected_id),0)
         if self.visible: self.table.selectRow(row)
         self.select_issue()
-        pending = sum(self.session.status(i)=='待核对' for i in self.session.report['issues'])
-        self.summary.setText(f'待核对 {pending} · 已修复 {len(self.session.fixed)} · 已核对 {len(self.session.dismissed)}  |  所有操作自动保存，可逐项撤销')
+        pending = len(self.session.groups())
+        self.summary.setText(f'待检查 {pending} 个小节 · 已修复 {len(self.session.fixed)} 处 · 同小节提示已合并')
+        self.update_batch()
         self.path.setText(f'处理结果：{self.session.output.name}')
         self.path.setToolTip(str(self.session.output))
 
@@ -109,6 +111,32 @@ class ReviewDialog(QDialog):
 
     def change_selection(self):
         self.select_issue()
+        self.update_batch()
+
+    def batch_candidates(self):
+        selected = self.current()
+        return [i for i in self.session.report['issues'] if i['rule_id']=='CLEF_OCTAVE_ANOMALY'
+                and (selected is None or (i['part_id'],i['staff'])==(selected['part_id'],selected['staff']))
+                and self.session.status(i)=='待核对']
+
+    def update_batch(self):
+        candidates = self.batch_candidates()
+        self.batch.setText('撤销这次批量修改' if self.last_batch else f'统一改为普通高音谱号（{len(candidates)} 处）')
+        self.batch.setEnabled(bool(candidates or self.last_batch))
+        self.batch.setToolTip('当前声部与谱表的八度谱号一起改，所有音符音高保持不变。原谱有合法八度标记时请逐项处理。')
+
+    def batch_clefs(self):
+        undo = bool(self.last_batch)
+        ids = self.last_batch if undo else [i['id'] for i in self.batch_candidates()]
+        if not ids: return
+        try:
+            self.session.apply_many(ids,'undo' if undo else 'fix')
+        except (OSError,ValueError,KeyError) as exc:
+            QMessageBox.warning(self,'未能保存修改',str(exc))
+            return
+        self.last_batch = [] if undo else ids
+        self.populate()
+        self.feedback.setText('已撤销批量修改。' if undo else f'已处理 {len(ids)} 处谱号，并自动重新检查相关提示。')
 
     def select_issue(self):
         issue = self.current()
@@ -143,6 +171,10 @@ class ReviewDialog(QDialog):
             }
             description = descriptions.get(issue['rule_id'],'这里可能有识别问题，请对照原谱检查。')
         self.details.setText(f"第 {issue['measure_number']} 小节 · 谱表 {issue['staff']}\n\n{description}")
+        group = self.issue_groups[self.table.currentRow()]
+        others = list(dict.fromkeys(i['message'] for i in group[1:]))
+        if others:
+            self.details.setText(self.details.text() + '\n\n本小节还需检查：\n' + '\n'.join(others))
 
     def primary_action(self):
         issue = self.current()
@@ -155,7 +187,10 @@ class ReviewDialog(QDialog):
         if not issue: return
         next_id = next((i['id'] for i in self.visible[self.table.currentRow()+1:] if self.session.status(i)=='待核对'),None)
         try:
-            self.session.apply(issue['id'],action)
+            if action in ('dismiss','restore'):
+                self.session.apply_many([i['id'] for i in self.issue_groups[self.table.currentRow()] if self.session.status(i) not in ('已修复','已消除')],action)
+            else:
+                self.session.apply(issue['id'],action)
         except (OSError,ValueError,KeyError) as exc:
             QMessageBox.critical(self,'无法保存审谱操作',str(exc))
             return

@@ -447,7 +447,7 @@ class MainWindow(QMainWindow):
         path_row.addWidget(self.output_edit, 1)
         path_row.addWidget(browse)
         layout.addLayout(path_row)
-        self.convert_button = QPushButton("开始识别")
+        self.convert_button = QPushButton("一键识别并整理")
         self.convert_button.setObjectName("primary")
         self.convert_button.clicked.connect(self._start_conversion)
         layout.addWidget(self.convert_button)
@@ -486,7 +486,7 @@ class MainWindow(QMainWindow):
         log_button.clicked.connect(self._show_log)
         action_row.addWidget(self.open_button, 1)
         action_row.addWidget(log_button)
-        self.review_button = QPushButton("打开审谱工作台")
+        self.review_button = QPushButton("还有问题？查看检查提示")
         self.review_button.clicked.connect(self._show_review)
         layout.addWidget(self.review_button)
         layout.addLayout(action_row)
@@ -618,7 +618,7 @@ class MainWindow(QMainWindow):
             self.suspect_summary.setText("未发现阻断转换的问题")
         self.review_summary = result.summary_file
         self.review_report = result.report_file
-        details = f"自动修复 {result.auto_fixed} · 待检查 {result.needs_review}"
+        details = f"已自动整理 {result.auto_fixed} 处 · 请在 MuseScore 中试听"
         if result.skipped_pages:
             details += " · 跳过页 " + "、".join(map(str,result.skipped_pages))
         if result.validation_error:
@@ -626,8 +626,10 @@ class MainWindow(QMainWindow):
         self.suspect_summary.setText(details)
         self.file_meta.setText(f"输出：{result.output.name}")
         self.file_meta.setToolTip(str(result.output))
-        self.convert_button.setText("重新识别")
+        self.convert_button.setText("重新识别并整理")
         self._refresh_controls()
+        if find_musescore(self.config.musescore_path):
+            self._open_result()
 
     def _conversion_failed(self, message: str) -> None:
         self.progress.setValue(0)
@@ -668,8 +670,8 @@ class MainWindow(QMainWindow):
         self.review_report = report
         dialog.exec()
         self.output_path = dialog.session.output
-        pending = sum(dialog.session.status(i) == '待核对' for i in dialog.session.report['issues'])
-        self.suspect_summary.setText(f"已修复 {len(dialog.session.fixed)} · 待核对 {pending}")
+        pending = len(dialog.session.groups())
+        self.suspect_summary.setText(f"已整理 {len(dialog.session.fixed)} 处 · 可在 MuseScore 中试听")
         self.file_meta.setText(f"输出：{self.output_path.name}")
         self.file_meta.setToolTip(str(self.output_path))
         self._refresh_controls()

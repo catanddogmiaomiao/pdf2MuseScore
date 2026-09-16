@@ -19,6 +19,7 @@ class ValidationConfig:
     # Explicit user assertion: octave labels are OMR mistakes, pitches already correct.
     confirmed_annotation_only: bool = False
     confirmed_issue_ids: tuple[str, ...] = ()
+    auto_systematic_clefs: bool = True
 
 
 @dataclass
@@ -91,6 +92,12 @@ def inspect(root: ET.Element, config: ValidationConfig) -> tuple[list[Issue], di
         usage = Counter((n.findtext('staff', '1'), n.findtext('voice', '1')) for m in measures for n in m.findall('note'))
         clefs = [c for m in measures for c in m.findall('attributes/clef')]
         octaves = Counter(c.findtext('clef-octave-change', '0') for c in clefs)
+        systematic_clefs = (config.auto_systematic_clefs and len(clefs) >= 3
+            and octaves['-1'] > 0 and octaves['1'] > 0
+            and all(c.findtext('sign')=='G' and c.findtext('line')=='2' for c in clefs)
+            and (violin or any(p.get('id')==pid and p.findtext('part-name','').strip().lower()=='voice' for p in root.findall('part-list/score-part')))
+            and not part.findall('.//transpose') and not part.findall('.//octave-shift')
+            and sum(m.find("print[@new-system='yes']") is not None for m in measures if m.findall('attributes/clef')) >= len(clefs)-1)
         divisions, expected = Fraction(1), None
         ties, slurs = {}, {}
         previous_pitch = {}
@@ -118,9 +125,13 @@ def inspect(root: ET.Element, config: ValidationConfig) -> tuple[list[Issue], di
                     octave = clef.find('clef-octave-change')
                     if clef.findtext('sign') == 'G' and clef.findtext('line') == '2' and octave is not None and octave.text not in ('0', None):
                         changed_clef = True
-                        safe = config.confirmed_annotation_only
+                        safe = config.confirmed_annotation_only or systematic_clefs
                         issue = add('CLEF_OCTAVE_ANOMALY', 'clef', '高音谱号含八度标记，请对照原谱', '谱号标记与实际 pitch 独立；仅凭音域不能证明应移动或保留音高。', 1.0 if safe else (.88 if violin else .68), before=ET.tostring(clef, encoding='unicode'), after='移除八度标记，保留全部 pitch', staff=clef.get('number', '1'), location=f'/attributes/clef[{ci+1}]', safe=safe, evidence={'instrument': names.get(pid, ''), 'clef_distribution': dict(octaves), 'system_start': measure.find("print[@new-system='yes']") is not None, 'pitch_semantics': 'annotation-only confirmed' if safe else 'unresolved'})
                         targets[issue.id] = (clef, octave)
+                        if systematic_clefs and not config.confirmed_annotation_only:
+                            issue.confidence = .96
+                            issue.evidence['automatic_systematic_clef_fix'] = True
+                            issue.reason = '同一谱表在换行处反复出现交替的八度高音谱号，按系统性识别异常移除标记；保留全部音符音高。请试听确认结果。'
             cursor = Fraction()
             maximum = Fraction()
             streams = defaultdict(list)
@@ -257,6 +268,12 @@ def validate_score(source: Path, config: ValidationConfig | None = None, output_
     report = Path(str(output_stem) + '.validation_report.json') if output_stem else source.with_name(source.stem + '.validation_report.json')
     summary = Path(str(output_stem) + '.validation_summary.txt') if output_stem else source.with_name(source.stem + '.validation_summary.txt')
     result = {'schema_version':1, 'original_file':str(source), 'original_sha256':hashlib.sha256(source.read_bytes()).hexdigest(), 'validated_file':str(output), 'report_file':str(report), 'summary_file':str(summary), 'elements_scanned':sum(1 for _ in root.iter()), 'measure_count':len(root.findall('part/measure')), 'auto_fixed':sum(i.fixed for i in issues), 'needs_review':sum(not i.fixed and i.confidence >= config.review_threshold for i in issues), 'warnings':sum(not i.fixed and i.severity == 'WARNING' for i in issues), 'issues':[asdict(i) for i in issues], 'remaining_issues':len(remaining), 'config':asdict(config), 'limitations':['置信度为规则评分，不是统计概率','不检查所有音乐错误；谱号未知语义只报告','小节编号来自 OMR，可能与 PDF 不同','不猜测或修改 pitch、节奏、声部']}
+    fields = ('rule_id','part_id','measure_index','staff','voice','source_location')
+    key = lambda i: tuple(str(getattr(i,k)) for k in fields)
+    remaining_keys = {key(i) for i in remaining}
+    result['remaining_issue_keys'] = sorted(remaining_keys)
+    result['resolved_issue_ids'] = [i.id for i in issues if not i.fixed and key(i) not in remaining_keys]
+    result['review_measure_count'] = len({(i.part_id,i.measure_index,i.staff) for i in issues if not i.fixed and key(i) in remaining_keys and i.severity != 'INFO' and i.confidence >= config.review_threshold})
     ET.indent(root)
     ET.ElementTree(root).write(output,encoding='utf-8',xml_declaration=True)
     report.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')

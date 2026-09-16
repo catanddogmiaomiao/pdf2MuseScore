@@ -8,6 +8,45 @@ from test_validation import score, note
 
 
 class ReviewTests(unittest.TestCase):
+    def test_automatic_systematic_clefs_and_undo(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source=Path(folder)/'auto.musicxml'
+            root=score(note(duration=16),'<clef-octave-change>-1</clef-octave-change>')
+            part=root.find('part')
+            for number,octave in ((2,1),(3,-1)):
+                m=ET.SubElement(part,'measure',number=str(number))
+                ET.SubElement(m,'print',{'new-system':'yes'})
+                m.append(ET.fromstring(f'<attributes><clef><sign>G</sign><line>2</line><clef-octave-change>{octave}</clef-octave-change></clef></attributes>'))
+                m.append(ET.fromstring(note(duration=16)))
+            ET.ElementTree(root).write(source)
+            report=validate_score(source)
+            self.assertEqual(report['auto_fixed'],3)
+            session=ReviewSession(Path(report['report_file']))
+            session.apply_many(list(session.fixed),'undo')
+            self.assertEqual(len(read_score(session.output).findall('.//clef-octave-change')),3)
+            root.find('part-list/score-part/part-name').text='Guitar'
+            ET.ElementTree(root).write(source)
+            self.assertEqual(validate_score(source)['auto_fixed'],0)
+
+    def test_batch_fix_and_undo_preserve_all_pitches(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source,session=self.make(folder)
+            original=[tuple(p.findtext(k) for k in ('step','alter','octave')) for p in read_score(source).iter('pitch')]
+            ids=[i['id'] for i in session.report['issues'] if i['rule_id']=='CLEF_OCTAVE_ANOMALY']
+            session.apply_many(ids,'fix')
+            self.assertEqual(len(session.fixed),2)
+            self.assertFalse(read_score(session.output).findall('.//clef-octave-change'))
+            self.assertEqual(original,[tuple(p.findtext(k) for k in ('step','alter','octave')) for p in read_score(session.output).iter('pitch')])
+            session.apply_many(ids,'undo')
+            self.assertEqual(len(read_score(session.output).findall('.//clef-octave-change')),2)
+
+    def test_duplicate_measure_issues_form_one_task(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source,session=self.make(folder)
+            issue=dict(session.report['issues'][0]);issue['id']='extra';issue['rule_id']='BEAM_STRUCTURE'
+            session.report['issues'].append(issue)
+            self.assertEqual(len(session.groups()),2)
+
     def make(self, folder):
         source=Path(folder)/'input.musicxml'
         root=score(note(duration=16),'<clef-octave-change>-1</clef-octave-change>')
