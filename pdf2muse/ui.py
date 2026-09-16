@@ -24,6 +24,11 @@ C = {
 STYLE = f"""
 QWidget {{ color:{C['text']}; font-family:'Microsoft YaHei UI'; font-size:14px; }}
 QMainWindow, QWidget#root {{ background:{C['window']}; }}
+QDialog, QMessageBox {{ background:{C['card']}; }}
+QMessageBox QLabel {{ color:{C['text']}; background:transparent; }}
+QMessageBox QLabel#qt_msgbox_label {{ min-width:340px; }}
+QMessageBox QPushButton {{ background:#242428; color:{C['text']}; min-width:88px; }}
+QMessageBox QPushButton:hover {{ background:#2D2D32; border-color:#5A5962; }}
 QFrame#card {{ background:{C['card']}; border:1px solid {C['border']}; border-radius:14px; }}
 QLabel#section {{ font-size:20px; font-weight:600; }}
 QLabel#brand {{ font-size:29px; font-weight:600; }}
