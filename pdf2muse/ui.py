@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 from .music_validator import ValidationConfig
 from .config import AppConfig
 from .review_ui import ReviewDialog
+from .segmentation_ui import SegmentationDialog
 from .converter import ConversionError, ConversionResult, convert_with_audiveris
 from .tools import find_audiveris, find_musescore, open_in_musescore
 
@@ -433,6 +434,9 @@ class MainWindow(QMainWindow):
         self.format_combo.addItem("MusicXML 压缩文件 (.mxl)", "mxl")
         self.format_combo.setItemText(0, "原始 MXL + 审谱 MusicXML")
         layout.addWidget(self.format_combo)
+        self.segment_button = QPushButton("分析谱行与小节")
+        self.segment_button.clicked.connect(self._show_segmentation)
+        layout.addWidget(self.segment_button)
         self.annotation_only = QCheckBox("确认八度谱号标记错误，音高已正确")
         self.annotation_only.setToolTip("默认只报告。勾选后移除所有高音谱号八度标记，保留全部 pitch；请先对照原谱确认。")
         self.annotation_only.hide()
@@ -601,6 +605,16 @@ class MainWindow(QMainWindow):
         self._refresh_controls()
         self.worker.start()
 
+    def _show_segmentation(self) -> None:
+        if not self.pdf_path:
+            return
+        base = Path(self.output_edit.text()).expanduser() if self.output_edit.text().strip() else self.pdf_path.parent
+        try:
+            dialog = SegmentationDialog(self.pdf_path, base / (self.pdf_path.stem + '.coordinates'), self)
+            dialog.exec()
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "无法分析谱面", str(exc))
+
     def _receive_log(self, line: str) -> None:
         self._log_lines.append(line)
         self._log_lines = self._log_lines[-1000:]
@@ -694,6 +708,7 @@ class MainWindow(QMainWindow):
     def _refresh_controls(self) -> None:
         running = self.worker is not None and self.worker.isRunning()
         self.convert_button.setEnabled(bool(self.pdf_path) and not running)
+        self.segment_button.setEnabled(bool(self.pdf_path) and not running)
         self.review_button.setEnabled(not running)
         self.annotation_only.setEnabled(not running)
         self.open_button.setEnabled(bool(self.output_path) and not running)
