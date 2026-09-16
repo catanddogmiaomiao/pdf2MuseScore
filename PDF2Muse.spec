@@ -1,6 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+import os
+import pefile
+from PyQt6.QtCore import QLibraryInfo
 
 
 project_root = Path(SPECPATH).resolve()
@@ -22,6 +25,21 @@ a = Analysis(
     noarchive=False,
     optimize=1,
 )
+
+# Qt 6.11 uses the Windows ICU API (unversioned ucnv_open). A developer PATH
+# may contain Poppler/Conda ICU with versioned symbols such as ucnv_open_78.
+# Let Windows load its platform ICU instead of bundling that incompatible DLL.
+qt_bin = Path(QLibraryInfo.path(QLibraryInfo.LibraryPath.BinariesPath))
+qt_core = pefile.PE(str(qt_bin / "Qt6Core.dll"))
+uses_windows_icu = any(
+    entry.dll.lower() == b"icuuc.dll" and any(symbol.name == b"ucnv_open" for symbol in entry.imports)
+    for entry in qt_core.DIRECTORY_ENTRY_IMPORT
+)
+if uses_windows_icu and (Path(os.environ["SystemRoot"]) / "System32" / "icuuc.dll").exists():
+    a.binaries = [entry for entry in a.binaries
+                  if Path(entry[0]).name.lower() != "icuuc.dll"
+                  and not (Path(entry[0]).name.lower().startswith("icudt")
+                           and Path(entry[1]).parent != qt_bin)]
 
 pyz = PYZ(a.pure)
 
