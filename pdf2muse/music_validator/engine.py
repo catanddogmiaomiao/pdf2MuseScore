@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass, field
 from fractions import Fraction
 from pathlib import Path
 from typing import Protocol
+from .clef_fix import compensate_octaves
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,7 @@ class ValidationConfig:
     confirmed_annotation_only: bool = False
     confirmed_issue_ids: tuple[str, ...] = ()
     auto_systematic_clefs: bool = True
+    preserve_written_position: bool = True
 
 
 @dataclass
@@ -131,7 +133,7 @@ def inspect(root: ET.Element, config: ValidationConfig) -> tuple[list[Issue], di
                         if systematic_clefs and not config.confirmed_annotation_only:
                             issue.confidence = .96
                             issue.evidence['automatic_systematic_clef_fix'] = True
-                            issue.reason = '同一谱表在换行处反复出现交替的八度高音谱号，按系统性识别异常移除标记；保留全部音符音高。请试听确认结果。'
+                            issue.reason = '同一谱表在换行处反复出现交替的八度高音谱号，按系统性识别异常移除标记；补偿对应音符八度并保持谱面位置。请试听确认结果。'
             cursor = Fraction()
             maximum = Fraction()
             streams = defaultdict(list)
@@ -248,6 +250,8 @@ def validate_score(source: Path, config: ValidationConfig | None = None, output_
     root = read_score(source)
     original = copy.deepcopy(root)
     issues, targets = inspect(root, config)
+    offsets = {id(c):int(c.findtext('clef-octave-change','0')) for c in root.iter('clef')}
+    fixed_clefs = {}
     for issue in issues:
         if issue.id in config.confirmed_issue_ids and issue.rule_id == 'CLEF_OCTAVE_ANOMALY':
             issue.auto_fixable = True
@@ -258,20 +262,28 @@ def validate_score(source: Path, config: ValidationConfig | None = None, output_
             clef, octave = targets[issue.id]
             before = ET.tostring(clef, encoding='unicode')
             clef.remove(octave)
+            if config.preserve_written_position:
+                fixed_clefs[id(clef)] = issue
+                issue.suggested_value = '普通高音谱号，并补偿受影响音符的八度'
             issue.fixed = True
             issue.patches.append({'operation':'remove-clef-octave-change','location':issue.source_location,'before':before,'after':ET.tostring(clef,encoding='unicode'),'rollback':'use original MusicXML'})
-    # Invariant: conservative clef repair cannot change any encoded note pitch.
-    if [ET.tostring(p) for p in original.iter('pitch')] != [ET.tostring(p) for p in root.iter('pitch')]:
-        raise ValueError('修复改变了 pitch，已拒绝输出')
+    pitch_changes = compensate_octaves(root, offsets, fixed_clefs)
+    # No step/alter or rhythm changes; octave changes must be individually traced.
+    before_pitches = list(original.iter('pitch'))
+    after_pitches = list(root.iter('pitch'))
+    if len(before_pitches)!=len(after_pitches) or any((a.findtext('step'),a.findtext('alter')) != (b.findtext('step'),b.findtext('alter')) for a,b in zip(before_pitches,after_pitches)):
+        raise ValueError('修复改变了音符数量或音级，拒绝输出')
     remaining, _ = inspect(root, ValidationConfig())
     output = Path(str(output_stem) + '.musicxml') if output_stem else source.with_name(source.stem + '.validated.musicxml')
     report = Path(str(output_stem) + '.validation_report.json') if output_stem else source.with_name(source.stem + '.validation_report.json')
     summary = Path(str(output_stem) + '.validation_summary.txt') if output_stem else source.with_name(source.stem + '.validation_summary.txt')
-    result = {'schema_version':1, 'original_file':str(source), 'original_sha256':hashlib.sha256(source.read_bytes()).hexdigest(), 'validated_file':str(output), 'report_file':str(report), 'summary_file':str(summary), 'elements_scanned':sum(1 for _ in root.iter()), 'measure_count':len(root.findall('part/measure')), 'auto_fixed':sum(i.fixed for i in issues), 'needs_review':sum(not i.fixed and i.confidence >= config.review_threshold for i in issues), 'warnings':sum(not i.fixed and i.severity == 'WARNING' for i in issues), 'issues':[asdict(i) for i in issues], 'remaining_issues':len(remaining), 'config':asdict(config), 'limitations':['置信度为规则评分，不是统计概率','不检查所有音乐错误；谱号未知语义只报告','小节编号来自 OMR，可能与 PDF 不同','不猜测或修改 pitch、节奏、声部']}
+    result = {'schema_version':1, 'original_file':str(source), 'original_sha256':hashlib.sha256(source.read_bytes()).hexdigest(), 'validated_file':str(output), 'report_file':str(report), 'summary_file':str(summary), 'elements_scanned':sum(1 for _ in root.iter()), 'measure_count':len(root.findall('part/measure')), 'auto_fixed':sum(i.fixed for i in issues), 'needs_review':sum(not i.fixed and i.confidence >= config.review_threshold for i in issues), 'warnings':sum(not i.fixed and i.severity == 'WARNING' for i in issues), 'issues':[asdict(i) for i in issues], 'remaining_issues':len(remaining), 'config':asdict(config), 'limitations':['置信度为规则评分，不是统计概率','不检查所有音乐错误；谱号未知语义只报告','小节编号来自 OMR，可能与 PDF 不同','不猜测节奏与声部；只按修复谱号的范围补偿八度']}
     fields = ('rule_id','part_id','measure_index','staff','voice','source_location')
     key = lambda i: tuple(str(getattr(i,k)) for k in fields)
     remaining_keys = {key(i) for i in remaining}
     result['remaining_issue_keys'] = sorted(remaining_keys)
+    result['repair_version'] = 2
+    result['octave_compensations'] = len(pitch_changes)
     result['resolved_issue_ids'] = [i.id for i in issues if not i.fixed and key(i) not in remaining_keys]
     result['review_measure_count'] = len({(i.part_id,i.measure_index,i.staff) for i in issues if not i.fixed and key(i) in remaining_keys and i.severity != 'INFO' and i.confidence >= config.review_threshold})
     ET.indent(root)

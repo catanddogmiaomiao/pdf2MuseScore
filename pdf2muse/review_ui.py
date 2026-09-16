@@ -123,7 +123,7 @@ class ReviewDialog(QDialog):
         candidates = self.batch_candidates()
         self.batch.setText('撤销这次批量修改' if self.last_batch else f'统一改为普通高音谱号（{len(candidates)} 处）')
         self.batch.setEnabled(bool(candidates or self.last_batch))
-        self.batch.setToolTip('当前声部与谱表的八度谱号一起改，所有音符音高保持不变。原谱有合法八度标记时请逐项处理。')
+        self.batch.setToolTip('当前谱表统一修正谱号，并补偿受影响音符的八度。原谱有合法八度标记时请逐项处理。')
 
     def batch_clefs(self):
         undo = bool(self.last_batch)
@@ -156,7 +156,7 @@ class ReviewDialog(QDialog):
         self.dismiss.setVisible(not fixed)
         self.dismiss.setText('重新检查' if issue['id'] in self.session.dismissed else ('保留原样' if clef else '已检查，继续'))
         if clef:
-            description = '可能多识别了八度标记。\n\n改为普通高音谱号会去掉标记，音符音高不变。' if not fixed else '已改为普通高音谱号。\n\n音符音高未改变。'
+            description = '可能多识别了八度标记。\n\n修复时会同时调整对应音符的八度，保持原来的谱面位置。' if not fixed else '已修正谱号，并调整对应音符的八度。'
         else:
             descriptions = {
                 'MEASURE_DURATION':'这一小节可能多拍或少拍，请检查音符和休止符的时值。',

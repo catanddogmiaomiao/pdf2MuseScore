@@ -34,7 +34,7 @@ class ValidationTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(), original)
             output = read_score(Path(result['validated_file']))
             self.assertIsNone(output.find('.//clef-octave-change'))
-            self.assertEqual(output.findtext('.//pitch/octave'), '4')
+            self.assertEqual(output.findtext('.//pitch/octave'), '3')
             self.assertTrue(result['issues'][0]['patches'])
 
     def test_003_rest_context(self):

@@ -32,6 +32,9 @@ class ReviewSession:
         self.output = Path(self.report['validated_file'])
         if self.state_path.exists():
             self._rebuild()
+        elif self.report.get('repair_version',1) < 2 and self.fixed:
+            # Upgrade the faulty annotation-only repair from the original source.
+            self._rebuild()
 
     def _verify_source(self):
         if hashlib.sha256(self.source.read_bytes()).hexdigest() != self.report['original_sha256']:
@@ -65,7 +68,7 @@ class ReviewSession:
         try:
             if self.fixed != old_fixed:
                 self._rebuild()
-            events = [{'issue_id':issue['id'],'action':action,'rule_id':issue['rule_id'], 'source_location':issue['source_location'], 'original_value':issue['original_value'], 'suggested_value':issue['suggested_value'], 'reason':'用户选择谱号修复：仅移除八度标记、保留 pitch' if action == 'fix' else '用户审谱操作'} for issue in selected]
+            events = [{'issue_id':issue['id'],'action':action,'rule_id':issue['rule_id'], 'source_location':issue['source_location'], 'original_value':issue['original_value'], 'suggested_value':issue['suggested_value'], 'reason':'用户选择谱号修复：移除八度标记并按谱号范围补偿八度' if action == 'fix' else '用户审谱操作'} for issue in selected]
             state = {'original_sha256':self.report['original_sha256'],'fixed_ids':sorted(self.fixed),'dismissed_ids':sorted(self.dismissed),'history':self.history+events,'output_file':str(self.output)}
             temporary = self.state_path.with_suffix('.json.tmp')
             temporary.write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')

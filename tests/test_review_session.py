@@ -8,6 +8,26 @@ from test_validation import score, note
 
 
 class ReviewTests(unittest.TestCase):
+    def test_compensation_scoped_to_staff_and_next_clef(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source=Path(folder)/'scopes.musicxml'
+            root=score(note(duration=16),'<clef-octave-change>-1</clef-octave-change>')
+            part=root.find('part')
+            m=ET.SubElement(part,'measure',number='2')
+            m.append(ET.fromstring(note(extra='<staff>2</staff>',duration=16)))
+            m.append(ET.fromstring('<backup><duration>16</duration></backup>'))
+            m.append(ET.fromstring(note(duration=16)))
+            m=ET.SubElement(part,'measure',number='3')
+            m.append(ET.fromstring('<attributes><clef><sign>G</sign><line>2</line></clef></attributes>'))
+            m.append(ET.fromstring(note(duration=16)))
+            ET.ElementTree(root).write(source)
+            report=validate_score(source)
+            session=ReviewSession(Path(report['report_file']))
+            session.apply(report['issues'][0]['id'],'fix')
+            self.assertEqual([p.findtext('octave') for p in read_score(session.output).iter('pitch')],['5','4','5','4'])
+            session.apply(report['issues'][0]['id'],'undo')
+            self.assertEqual([p.findtext('octave') for p in read_score(session.output).iter('pitch')],['4','4','4','4'])
+
     def test_automatic_systematic_clefs_and_undo(self):
         with tempfile.TemporaryDirectory() as folder:
             source=Path(folder)/'auto.musicxml'
@@ -36,7 +56,7 @@ class ReviewTests(unittest.TestCase):
             session.apply_many(ids,'fix')
             self.assertEqual(len(session.fixed),2)
             self.assertFalse(read_score(session.output).findall('.//clef-octave-change'))
-            self.assertEqual(original,[tuple(p.findtext(k) for k in ('step','alter','octave')) for p in read_score(session.output).iter('pitch')])
+            self.assertEqual([p.findtext('octave') for p in read_score(session.output).iter('pitch')], ['5','3'])
             session.apply_many(ids,'undo')
             self.assertEqual(len(read_score(session.output).findall('.//clef-octave-change')),2)
 
