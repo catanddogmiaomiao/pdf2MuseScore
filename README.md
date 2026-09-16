@@ -16,6 +16,8 @@ python main.py
 
 也可以双击 `run-pdf2muse.cmd`。界面支持拖放 PDF、分页预览乐谱、选择输出目录、后台调用
 Audiveris、查看转换日志，以及识别完成后在 MuseScore Studio 中打开结果。
+如果 PDF 包含空白页或没有五线谱的说明页，首次识别后会复用 Audiveris 保存的 OMR 工程，
+跳过这些页面完成导出，并在界面中明确显示被跳过的页码。
 
 首次运行会自动查找 Audiveris 和 MuseScore；如果没有找到，可在右上角“设置”中手动指定。
 

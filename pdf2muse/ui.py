@@ -463,11 +463,11 @@ class MainWindow(QMainWindow):
         line.setStyleSheet(f"color:{C['border']};")
         layout.addWidget(line)
         suspect_row = QHBoxLayout()
-        suspect_row.addWidget(QLabel("可疑小节"))
+        suspect_row.addWidget(QLabel("检查提示"))
         suspect_row.addStretch()
-        suspect = QLabel("识别完成后显示")
-        suspect.setObjectName("muted")
-        suspect_row.addWidget(suspect)
+        self.suspect_summary = QLabel("识别完成后显示")
+        self.suspect_summary.setObjectName("muted")
+        suspect_row.addWidget(self.suspect_summary)
         layout.addLayout(suspect_row)
         action_row = QHBoxLayout()
         self.open_button = QPushButton("在 MuseScore 中打开")
@@ -520,6 +520,7 @@ class MainWindow(QMainWindow):
         self.file_meta.setText(f"PDF 乐谱  ·  {self.pdf_preview.page_count} 页  ·  {size_mb:.1f} MB  ·  已就绪")
         self.status_label.setText("●  已选择文件")
         self.status_label.setStyleSheet("")
+        self.suspect_summary.setText("识别完成后显示")
         self.progress.setValue(0)
         self._refresh_controls()
 
@@ -532,6 +533,7 @@ class MainWindow(QMainWindow):
         self.file_meta.setText("请选择一份 PDF 乐谱")
         self.status_label.setText("●  等待开始")
         self.status_label.setStyleSheet("")
+        self.suspect_summary.setText("识别完成后显示")
         self.progress.setValue(0)
         self._refresh_controls()
 
@@ -562,6 +564,7 @@ class MainWindow(QMainWindow):
         self.config.output_dir = output_dir if self.output_edit.text().strip() else None
         self.status_label.setStyleSheet("")
         self.status_label.setText("●  正在识别乐谱…")
+        self.suspect_summary.setText("正在分析页面和乐谱结构…")
         self.progress.setValue(2)
         self.output_path = None
         self._log_lines = []
@@ -582,7 +585,13 @@ class MainWindow(QMainWindow):
         self.output_path, self.log_path = result.output, result.log_file
         self.progress.setValue(100)
         self.status_label.setStyleSheet(f"color:{C['accent']};")
-        self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
+        if result.skipped_pages:
+            pages = "、".join(str(page) for page in result.skipped_pages)
+            self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
+            self.suspect_summary.setText(f"已跳过无五线谱页面：第 {pages} 页")
+        else:
+            self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
+            self.suspect_summary.setText("未发现阻断转换的问题")
         self.file_meta.setText(f"输出：{result.output.name}")
         self.convert_button.setText("重新识别")
         self._refresh_controls()
@@ -591,6 +600,7 @@ class MainWindow(QMainWindow):
         self.progress.setValue(0)
         self.status_label.setStyleSheet(f"color:{C['danger']};")
         self.status_label.setText("●  识别失败")
+        self.suspect_summary.setText("请查看日志中的最后一条错误")
         self._refresh_controls()
         QMessageBox.critical(self, "识别失败", message)
 
