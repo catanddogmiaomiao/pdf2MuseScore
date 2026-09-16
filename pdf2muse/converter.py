@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import time
+import ctypes
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -19,6 +20,66 @@ class ConversionResult:
 
 class ConversionError(RuntimeError):
     pass
+
+
+def _physical_memory_gib() -> float:
+    """Return installed physical memory without adding a third-party dependency."""
+    class MemoryStatus(ctypes.Structure):
+        _fields_ = [
+            ("length", ctypes.c_ulong),
+            ("memory_load", ctypes.c_ulong),
+            ("total_phys", ctypes.c_ulonglong),
+            ("avail_phys", ctypes.c_ulonglong),
+            ("total_page_file", ctypes.c_ulonglong),
+            ("avail_page_file", ctypes.c_ulonglong),
+            ("total_virtual", ctypes.c_ulonglong),
+            ("avail_virtual", ctypes.c_ulonglong),
+            ("avail_extended_virtual", ctypes.c_ulonglong),
+        ]
+
+    status = MemoryStatus()
+    status.length = ctypes.sizeof(status)
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+        return 8.0
+    return status.total_phys / (1024 ** 3)
+
+
+def _configure_audiveris_memory(audiveris: Path) -> str | None:
+    """Keep the JVM heap below RAM so Audiveris' native CV code has headroom.
+
+    A heap equal to the machine's total RAM can make the JVM crash even while
+    the Java heap is mostly empty, because OpenCV/JavaCPP and the JVM itself use
+    native memory outside that heap.
+    """
+    config = audiveris.parent / "app" / "Audiveris.cfg"
+    if not config.is_file():
+        return None
+    memory_gib = _physical_memory_gib()
+    if memory_gib <= 10:
+        heap_gib = 3
+    elif memory_gib <= 16:
+        heap_gib = 5
+    elif memory_gib <= 24:
+        heap_gib = 8
+    else:
+        heap_gib = min(12, max(8, int(memory_gib * 0.45)))
+    try:
+        original = config.read_text(encoding="utf-8")
+        updated = re.sub(
+            r"(?m)^java-options=-Xmx\S+\s*$",
+            f"java-options=-Xmx{heap_gib}G",
+            original,
+        )
+        updated = re.sub(
+            r"(?m)^java-options=-Xms\S+\s*$",
+            "java-options=-Xms256m",
+            updated,
+        )
+        if updated != original:
+            config.write_text(updated, encoding="utf-8")
+        return f"Audiveris 内存配置：物理内存约 {memory_gib:.1f} GB，Java 上限 {heap_gib} GB"
+    except OSError as exc:
+        return f"警告：无法调整 Audiveris 内存配置（{exc}）"
 
 
 def _compact_page_ranges(pages: list[int]) -> list[str]:
@@ -68,6 +129,12 @@ def convert_with_audiveris(
     lines: list[str] = []
     if on_progress:
         on_progress(8)
+
+    memory_notice = _configure_audiveris_memory(audiveris)
+    if memory_notice:
+        lines.append(memory_notice)
+        if on_log:
+            on_log(memory_notice)
 
     def run_command(command: list[str], initial_progress: int, maximum_progress: int) -> int:
         command_line = "执行命令：" + subprocess.list2cmdline(command)
