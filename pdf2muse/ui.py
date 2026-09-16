@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PyQt6.QtCore import QThread, Qt, pyqtSignal
+from PyQt6.QtCore import QPointF, QThread, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
+from PyQt6.QtPdf import QPdfDocument
+from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (
     QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
     QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton,
-    QVBoxLayout, QWidget,
+    QStackedWidget, QVBoxLayout, QWidget,
 )
 
 from .config import AppConfig
@@ -49,6 +51,7 @@ QComboBox QAbstractItemView {{ background:#202024; border:1px solid {C['border']
 QProgressBar {{ background:#2B2B30; border:0; border-radius:4px; height:8px; text-align:center; color:transparent; }}
 QProgressBar::chunk {{ background:{C['accent']}; border-radius:4px; }}
 QPlainTextEdit {{ background:#111113; border:1px solid {C['border']}; border-radius:10px; padding:10px; color:#C9C7CE; font-family:Consolas; font-size:12px; }}
+QPdfView {{ background:#111113; border:0; }}
 """
 
 
@@ -98,6 +101,113 @@ class DropZone(QFrame):
         self.choose_button.setObjectName("light")
         self.choose_button.setFixedWidth(182)
         layout.addWidget(self.choose_button, 0, Qt.AlignmentFlag.AlignHCenter)
+
+    def _accepts(self, event) -> bool:
+        urls = event.mimeData().urls()
+        return len(urls) == 1 and urls[0].isLocalFile() and urls[0].toLocalFile().lower().endswith(".pdf")
+
+    def _restyle(self, active: bool) -> None:
+        self.setProperty("active", active)
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+    def dragEnterEvent(self, event) -> None:
+        if self._accepts(event):
+            event.acceptProposedAction()
+            self._restyle(True)
+
+    def dragLeaveEvent(self, event) -> None:
+        self._restyle(False)
+
+    def dropEvent(self, event) -> None:
+        self._restyle(False)
+        if self._accepts(event):
+            self.fileDropped.emit(Path(event.mimeData().urls()[0].toLocalFile()))
+            event.acceptProposedAction()
+
+
+class PdfPreview(QFrame):
+    fileDropped = pyqtSignal(Path)
+    chooseRequested = pyqtSignal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setAcceptDrops(True)
+        self.setObjectName("pdfPreview")
+        self.setStyleSheet(
+            f"QFrame#pdfPreview{{background:#111113;border:1px solid {C['border']};border-radius:12px;}}"
+            f"QFrame#pdfPreview[active='true']{{border:2px solid {C['accent']};}}"
+        )
+        self.document = QPdfDocument(self)
+        self.view = QPdfView(self)
+        self.view.setDocument(self.document)
+        self.view.setPageMode(QPdfView.PageMode.SinglePage)
+        self.view.setZoomMode(QPdfView.ZoomMode.FitInView)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
+        layout.addWidget(self.view, 1)
+
+        toolbar = QHBoxLayout()
+        toolbar.setSpacing(8)
+        self.previous_button = QPushButton("上一页")
+        self.previous_button.setFixedHeight(34)
+        self.next_button = QPushButton("下一页")
+        self.next_button.setFixedHeight(34)
+        self.page_label = QLabel("第 0 / 0 页")
+        self.page_label.setObjectName("muted")
+        self.page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        change_button = QPushButton("更换 PDF")
+        change_button.setFixedHeight(34)
+        self.previous_button.clicked.connect(lambda: self._jump(-1))
+        self.next_button.clicked.connect(lambda: self._jump(1))
+        change_button.clicked.connect(self.chooseRequested)
+        toolbar.addWidget(self.previous_button)
+        toolbar.addWidget(self.next_button)
+        toolbar.addStretch()
+        toolbar.addWidget(self.page_label)
+        toolbar.addStretch()
+        toolbar.addWidget(change_button)
+        layout.addLayout(toolbar)
+
+        self.document.pageCountChanged.connect(self._update_navigation)
+        self.view.pageNavigator().currentPageChanged.connect(self._update_navigation)
+        self._update_navigation()
+
+    @property
+    def page_count(self) -> int:
+        return self.document.pageCount()
+
+    def load_pdf(self, path: Path) -> bool:
+        self.document.close()
+        error = self.document.load(str(path))
+        if error != QPdfDocument.Error.None_:
+            return False
+        self.view.pageNavigator().jump(0, QPointF(0, 0), 0)
+        self.view.setZoomMode(QPdfView.ZoomMode.FitInView)
+        self._update_navigation()
+        return True
+
+    def clear(self) -> None:
+        self.document.close()
+        self._update_navigation()
+
+    def _jump(self, offset: int) -> None:
+        count = self.document.pageCount()
+        if count <= 0:
+            return
+        current = self.view.pageNavigator().currentPage()
+        page = max(0, min(count - 1, current + offset))
+        self.view.pageNavigator().jump(page, QPointF(0, 0), 0)
+        self.view.setZoomMode(QPdfView.ZoomMode.FitInView)
+
+    def _update_navigation(self, *args) -> None:
+        count = self.document.pageCount()
+        current = self.view.pageNavigator().currentPage() if count else -1
+        self.page_label.setText(f"第 {current + 1 if count else 0} / {count} 页")
+        self.previous_button.setEnabled(count > 0 and current > 0)
+        self.next_button.setEnabled(count > 0 and current < count - 1)
 
     def _accepts(self, event) -> bool:
         urls = event.mimeData().urls()
@@ -263,14 +373,22 @@ class MainWindow(QMainWindow):
 
     def _import_card(self) -> QFrame:
         frame, layout = self._card()
-        title = QLabel("导入乐谱")
-        title.setObjectName("section")
-        layout.addWidget(title)
+        self.import_title = QLabel("导入乐谱")
+        self.import_title.setObjectName("section")
+        layout.addWidget(self.import_title)
         self.drop_zone = DropZone()
         self.drop_zone.setMinimumHeight(330)
         self.drop_zone.choose_button.clicked.connect(self._choose_pdf)
         self.drop_zone.fileDropped.connect(self._set_pdf)
-        layout.addWidget(self.drop_zone, 1)
+        self.pdf_preview = PdfPreview()
+        self.pdf_preview.chooseRequested.connect(self._choose_pdf)
+        self.pdf_preview.fileDropped.connect(self._set_pdf)
+        self.import_stack = QStackedWidget()
+        self.import_stack.setStyleSheet("QStackedWidget{background:transparent;border:0;}")
+        self.import_stack.addWidget(self.drop_zone)
+        self.import_stack.addWidget(self.pdf_preview)
+        self.import_stack.setCurrentWidget(self.drop_zone)
+        layout.addWidget(self.import_stack, 1)
         self.file_panel = QFrame()
         self.file_panel.setObjectName("filePanel")
         self.file_panel.setStyleSheet(f"QFrame#filePanel{{background:#151517;border:1px solid {C['border']};border-radius:10px;}}")
@@ -386,12 +504,20 @@ class MainWindow(QMainWindow):
         if path.suffix.lower() != ".pdf" or not path.is_file():
             QMessageBox.warning(self, "无法导入", "请选择有效的 PDF 文件。")
             return
+        old_path = self.pdf_path
+        if not self.pdf_preview.load_pdf(path):
+            if old_path:
+                self.pdf_preview.load_pdf(old_path)
+            QMessageBox.warning(self, "无法预览", "无法读取这份 PDF，文件可能损坏或受到密码保护。")
+            return
         self.pdf_path = path.resolve()
         self.output_path = None
+        self.import_title.setText("乐谱预览")
+        self.import_stack.setCurrentWidget(self.pdf_preview)
         self.file_name.setText(path.name)
         self.file_name.setToolTip(str(path))
         size_mb = path.stat().st_size / (1024 * 1024)
-        self.file_meta.setText(f"PDF 乐谱  ·  {size_mb:.1f} MB  ·  已就绪")
+        self.file_meta.setText(f"PDF 乐谱  ·  {self.pdf_preview.page_count} 页  ·  {size_mb:.1f} MB  ·  已就绪")
         self.status_label.setText("●  已选择文件")
         self.status_label.setStyleSheet("")
         self.progress.setValue(0)
@@ -399,6 +525,9 @@ class MainWindow(QMainWindow):
 
     def _clear_pdf(self) -> None:
         self.pdf_path = self.output_path = None
+        self.pdf_preview.clear()
+        self.import_title.setText("导入乐谱")
+        self.import_stack.setCurrentWidget(self.drop_zone)
         self.file_name.setText("尚未选择文件")
         self.file_meta.setText("请选择一份 PDF 乐谱")
         self.status_label.setText("●  等待开始")

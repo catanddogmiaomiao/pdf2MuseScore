@@ -14,7 +14,7 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-也可以双击 `run-pdf2muse.cmd`。界面支持拖放 PDF、选择输出目录、后台调用
+也可以双击 `run-pdf2muse.cmd`。界面支持拖放 PDF、分页预览乐谱、选择输出目录、后台调用
 Audiveris、查看转换日志，以及识别完成后在 MuseScore Studio 中打开结果。
 
 首次运行会自动查找 Audiveris 和 MuseScore；如果没有找到，可在右上角“设置”中手动指定。
