@@ -435,7 +435,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.format_combo)
         self.annotation_only = QCheckBox("确认八度谱号标记错误，音高已正确")
         self.annotation_only.setToolTip("默认只报告。勾选后移除所有高音谱号八度标记，保留全部 pitch；请先对照原谱确认。")
-        layout.addWidget(self.annotation_only)
+        self.annotation_only.hide()
         layout.addWidget(QLabel("保存位置"))
         path_row = QHBoxLayout()
         self.output_edit = QLineEdit(str(self.config.output_dir or ""))
