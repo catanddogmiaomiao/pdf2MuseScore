@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from .music_validator import ValidationConfig, validate_score, read_score
+
 
 @dataclass(frozen=True)
 class ConversionResult:
@@ -15,6 +17,12 @@ class ConversionResult:
     elapsed_seconds: float
     log_file: Path
     skipped_pages: tuple[int, ...] = ()
+    original_output: Path | None = None
+    report_file: Path | None = None
+    summary_file: Path | None = None
+    auto_fixed: int = 0
+    needs_review: int = 0
+    validation_error: str = ""
 
 
 class ConversionError(RuntimeError):
@@ -55,6 +63,7 @@ def convert_with_audiveris(
     audiveris: Path,
     on_log: Callable[[str], None] | None = None,
     on_progress: Callable[[int], None] | None = None,
+    validation_config: ValidationConfig | None = None,
 ) -> ConversionResult:
     output_dir.mkdir(parents=True, exist_ok=True)
     run_dir = output_dir / ".pdf2muse" / f"{pdf.stem}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -63,7 +72,7 @@ def convert_with_audiveris(
         run_dir = run_dir.with_name(f"{run_dir.name}-{index}")
         index += 1
     run_dir.mkdir(parents=True)
-    log_file = output_dir / f"{pdf.stem}.audiveris.log"
+    log_file = run_dir / f"{pdf.stem}.audiveris.log"
     started = time.perf_counter()
     lines: list[str] = []
     if on_progress:
@@ -137,14 +146,38 @@ def convert_with_audiveris(
     if not candidates:
         raise ConversionError("Audiveris 已结束，但没有找到 MusicXML/MXL 输出。")
 
-    source = candidates[0]
+    scores = []
+    for candidate in candidates:
+        try:
+            read_score(candidate)
+            scores.append(candidate)
+        except Exception as exc:
+            if on_log:
+                on_log(f"非可检查乐谱输出：{candidate.name} ({exc})")
+    if not scores:
+        raise ConversionError("没有找到可解析的 score-partwise 乐谱输出。")
+    if len(scores) > 1:
+        raise ConversionError(f"Audiveris 输出了 {len(scores)} 份乐谱，请检查工程输出，暂不自动选择以免遗漏乐章。")
+    source = scores[0]
     suffix = ".mxl" if source.suffix.lower() == ".mxl" else ".musicxml"
     destination = output_dir / f"{pdf.stem}{suffix}"
     index = 2
     while destination.exists():
         destination = output_dir / f"{pdf.stem} ({index}){suffix}"
         index += 1
-    shutil.move(str(source), destination)
+    shutil.copy2(source, destination)
+    try:
+        if on_log:
+            on_log("正在检查 MusicXML 音乐结构…")
+        review = validate_score(destination, validation_config)
+        result = ConversionResult(Path(review["validated_file"]), time.perf_counter() - started, log_file, skipped_pages, destination, Path(review["report_file"]), Path(review["summary_file"]), review["auto_fixed"], review["needs_review"])
+    except Exception as exc:
+        notice = f"审谱失败，已保留原始识别结果：{exc}"
+        if on_log:
+            on_log(notice)
+        with log_file.open("a", encoding="utf-8") as stream:
+            stream.write(notice + "\n")
+        result = ConversionResult(destination, time.perf_counter() - started, log_file, skipped_pages, destination, validation_error=str(exc))
     if on_progress:
         on_progress(100)
-    return ConversionResult(destination, time.perf_counter() - started, log_file, skipped_pages)
+    return result

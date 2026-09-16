@@ -82,9 +82,9 @@ python -m pip install -r requirements-build.txt
 
 1. 主界面和图标视觉设计（已完成）。
 2. 使用 PyQt 实现拖放、选择文件、输出设置、状态和日志（已完成 MVP）。
-3. 接入官方 Audiveris 命令行和 MuseScore 自动检测（代码已接入，等待实机转换验证）。
+3. 接入官方 Audiveris 命令行和 MuseScore 自动检测（已通过真实样例导出与 MuseScore 导入验证）。
 4. 完成真实 PDF → MXL 验证，记录识别问题。
-5. 增加可疑小节检查；只报告，不自动修改识别结果。
+5. 实验分支已加入独立审谱、报告与经确认的保守谱号修复，详见 [实验版本说明](docs/experimental-validation.md)。
 
 第一阶段直接处理 PDF；图像预处理、声部筛选和批量转换留待后续实测决定。
 

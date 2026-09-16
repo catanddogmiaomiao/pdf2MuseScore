@@ -7,11 +7,12 @@ from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (
-    QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
+    QCheckBox, QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
     QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton,
     QStackedWidget, QVBoxLayout, QWidget,
 )
 
+from .music_validator import ValidationConfig
 from .config import AppConfig
 from .converter import ConversionError, ConversionResult, convert_with_audiveris
 from .tools import find_audiveris, find_musescore, open_in_musescore
@@ -248,6 +249,7 @@ class ConversionWorker(QThread):
             result = convert_with_audiveris(
                 self.pdf, self.output_dir, self.audiveris,
                 self.log.emit, self.progress.emit,
+                validation_config=getattr(self, "validation_config", None),
             )
         except (ConversionError, OSError) as exc:
             self.failed.emit(str(exc))
@@ -318,6 +320,7 @@ class MainWindow(QMainWindow):
         self.output_path: Path | None = None
         self.log_path: Path | None = None
         self.worker: ConversionWorker | None = None
+        self.review_summary: Path | None = None
         self._log_lines: list[str] = []
         self.setWindowTitle("PDF2Muse")
         self.setMinimumSize(980, 680)
@@ -420,13 +423,17 @@ class MainWindow(QMainWindow):
         column = QVBoxLayout()
         column.setSpacing(18)
         settings, layout = self._card()
+        layout.setSpacing(10)
         title = QLabel("转换设置")
         title.setObjectName("section")
         layout.addWidget(title)
-        layout.addWidget(QLabel("输出格式"))
         self.format_combo = QComboBox()
         self.format_combo.addItem("MusicXML 压缩文件 (.mxl)", "mxl")
+        self.format_combo.setItemText(0, "原始 MXL + 审谱 MusicXML")
         layout.addWidget(self.format_combo)
+        self.annotation_only = QCheckBox("确认八度谱号标记错误，音高已正确")
+        self.annotation_only.setToolTip("默认只报告。勾选后移除所有高音谱号八度标记，保留全部 pitch；请先对照原谱确认。")
+        layout.addWidget(self.annotation_only)
         layout.addWidget(QLabel("保存位置"))
         path_row = QHBoxLayout()
         self.output_edit = QLineEdit(str(self.config.output_dir or ""))
@@ -442,13 +449,11 @@ class MainWindow(QMainWindow):
         self.convert_button.setObjectName("primary")
         self.convert_button.clicked.connect(self._start_conversion)
         layout.addWidget(self.convert_button)
-        tip = QLabel("转换后可在 MuseScore 中编辑和播放")
-        tip.setObjectName("muted")
-        tip.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(tip)
         column.addWidget(settings)
 
         status, layout = self._card()
+        layout.setContentsMargins(22, 16, 22, 16)
+        layout.setSpacing(8)
         title = QLabel("识别状态")
         title.setObjectName("section")
         layout.addWidget(title)
@@ -456,6 +461,7 @@ class MainWindow(QMainWindow):
         self.status_label.setObjectName("muted")
         layout.addWidget(self.status_label)
         self.progress = QProgressBar()
+        self.progress.setFixedHeight(8)
         self.progress.setRange(0, 100)
         layout.addWidget(self.progress)
         line = QFrame()
@@ -466,6 +472,7 @@ class MainWindow(QMainWindow):
         suspect_row.addWidget(QLabel("检查提示"))
         suspect_row.addStretch()
         self.suspect_summary = QLabel("识别完成后显示")
+        self.suspect_summary.setWordWrap(True)
         self.suspect_summary.setObjectName("muted")
         suspect_row.addWidget(self.suspect_summary)
         layout.addLayout(suspect_row)
@@ -477,6 +484,9 @@ class MainWindow(QMainWindow):
         log_button.clicked.connect(self._show_log)
         action_row.addWidget(self.open_button, 1)
         action_row.addWidget(log_button)
+        self.review_button = QPushButton("查看审谱报告")
+        self.review_button.clicked.connect(self._show_review)
+        layout.addWidget(self.review_button)
         layout.addLayout(action_row)
         column.addWidget(status, 1)
         return column
@@ -490,7 +500,7 @@ class MainWindow(QMainWindow):
         label.setObjectName("muted")
         row.addWidget(label)
         row.addStretch()
-        version = QLabel("PDF2Muse 0.1")
+        version = QLabel("PDF2Muse 0.2 · 实验版")
         version.setObjectName("muted")
         row.addWidget(version)
         return footer
@@ -501,6 +511,9 @@ class MainWindow(QMainWindow):
             self._set_pdf(Path(path))
 
     def _set_pdf(self, path: Path) -> None:
+        if self.worker and self.worker.isRunning():
+            return
+        self.review_summary = None
         if path.suffix.lower() != ".pdf" or not path.is_file():
             QMessageBox.warning(self, "无法导入", "请选择有效的 PDF 文件。")
             return
@@ -525,6 +538,9 @@ class MainWindow(QMainWindow):
         self._refresh_controls()
 
     def _clear_pdf(self) -> None:
+        if self.worker and self.worker.isRunning():
+            return
+        self.review_summary = None
         self.pdf_path = self.output_path = None
         self.pdf_preview.clear()
         self.import_title.setText("导入乐谱")
@@ -568,7 +584,10 @@ class MainWindow(QMainWindow):
         self.progress.setValue(2)
         self.output_path = None
         self._log_lines = []
+        self.review_summary = None
+        self.log_path = None
         self.worker = ConversionWorker(self.pdf_path, output_dir, audiveris)
+        self.worker.validation_config = ValidationConfig(confirmed_annotation_only=self.annotation_only.isChecked())
         self.worker.progress.connect(self.progress.setValue)
         self.worker.log.connect(self._receive_log)
         self.worker.succeeded.connect(self._conversion_succeeded)
@@ -592,7 +611,15 @@ class MainWindow(QMainWindow):
         else:
             self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
             self.suspect_summary.setText("未发现阻断转换的问题")
+        self.review_summary = result.summary_file
+        details = f"自动修复 {result.auto_fixed} · 待检查 {result.needs_review}"
+        if result.skipped_pages:
+            details += " · 跳过页 " + "、".join(map(str,result.skipped_pages))
+        if result.validation_error:
+            details = "审谱失败，使用原始输出；请查看日志"
+        self.suspect_summary.setText(details)
         self.file_meta.setText(f"输出：{result.output.name}")
+        self.file_meta.setToolTip(str(result.output))
         self.convert_button.setText("重新识别")
         self._refresh_controls()
 
@@ -617,6 +644,19 @@ class MainWindow(QMainWindow):
         except OSError as exc:
             QMessageBox.critical(self, "无法打开 MuseScore", str(exc))
 
+    def _show_review(self) -> None:
+        if not self.review_summary:
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle("审谱报告 · 请对照原谱检查")
+        dialog.resize(850, 600)
+        layout = QVBoxLayout(dialog)
+        text = QPlainTextEdit()
+        text.setReadOnly(True)
+        text.setPlainText(self.review_summary.read_text(encoding="utf-8"))
+        layout.addWidget(text)
+        dialog.exec()
+
     def _show_log(self) -> None:
         dialog = QDialog(self)
         dialog.setWindowTitle("转换日志")
@@ -635,6 +675,8 @@ class MainWindow(QMainWindow):
     def _refresh_controls(self) -> None:
         running = self.worker is not None and self.worker.isRunning()
         self.convert_button.setEnabled(bool(self.pdf_path) and not running)
+        self.review_button.setEnabled(bool(self.review_summary) and not running)
+        self.annotation_only.setEnabled(not running)
         self.open_button.setEnabled(bool(self.output_path) and not running)
 
     def closeEvent(self, event) -> None:
