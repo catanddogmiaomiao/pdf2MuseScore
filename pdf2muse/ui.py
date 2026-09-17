@@ -325,7 +325,7 @@ class MainWindow(QMainWindow):
         self.worker: ConversionWorker | None = None
         self._log_lines: list[str] = []
         self.setWindowTitle("PDF2Muse")
-        self.setMinimumSize(980, 680)
+        self.setMinimumSize(980, 780)
         self.resize(1200, 780)
         self.setStyleSheet(STYLE)
         root = QWidget()
