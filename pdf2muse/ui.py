@@ -14,6 +14,8 @@ from PyQt6.QtWidgets import (
 )
 
 from .config import AppConfig
+from .library import ScoreLibrary
+from .library_ui import LibraryPage
 from .i18n import tr, set_language, retranslate, LANGUAGES
 from .converter import ConversionError, ConversionResult, ConversionCancelled, MemoryConversionError, convert_with_homr
 from .tools import find_homr_python, find_musescore, open_in_musescore, open_output_folder
@@ -335,6 +337,8 @@ class MainWindow(QMainWindow):
         self.log_path: Path | None = None
         self.worker: ConversionWorker | None = None
         self._log_lines: list[str] = []
+        self.library = ScoreLibrary()
+        self.library_entry = None
         self.setWindowTitle("PDF2Muse")
         self.setMinimumSize(980, 780)
         self.resize(1200, 780)
@@ -346,11 +350,22 @@ class MainWindow(QMainWindow):
         outer.setContentsMargins(34, 24, 34, 18)
         outer.setSpacing(20)
         outer.addLayout(self._header())
-        content = QHBoxLayout()
+        self.pages = QStackedWidget()
+        conversion_page = QWidget()
+        content = QHBoxLayout(conversion_page)
+        content.setContentsMargins(0, 0, 0, 0)
         content.setSpacing(18)
         content.addWidget(self._import_card(), 1)
         content.addLayout(self._right_column(), 1)
-        outer.addLayout(content, 1)
+        self.pages.addWidget(conversion_page)
+        self.library_page = LibraryPage(self.library)
+        self.library_page.importRequested.connect(self._choose_pdf)
+        self.library_page.scoreRequested.connect(self._restore_score)
+        self.library_page.openRequested.connect(self._open_score_file)
+        self.library_page.folderRequested.connect(self._open_folder)
+        self.library_page.removed.connect(self._library_removed)
+        self.pages.addWidget(self.library_page)
+        outer.addWidget(self.pages, 1)
         outer.addWidget(self._footer())
         self._refresh_controls()
 
@@ -376,6 +391,14 @@ class MainWindow(QMainWindow):
         row.addSpacing(8)
         row.addLayout(titles)
         row.addStretch()
+        self.conversion_tab = QPushButton(tr('转换'))
+        self.library_tab = QPushButton(tr('曲谱库'))
+        for index, button in enumerate((self.conversion_tab, self.library_tab)):
+            button.setCheckable(True)
+            button.setStyleSheet("QPushButton:checked{background:#2B2532;color:#C8AFE0;border-color:#746080;}")
+            button.clicked.connect(lambda checked, page=index: self._switch_page(page))
+            row.addWidget(button)
+        self.conversion_tab.setChecked(True)
         row.addWidget(settings)
         return row
 
@@ -533,6 +556,21 @@ class MainWindow(QMainWindow):
                 self.pdf_preview.load_pdf(old_path)
             QMessageBox.warning(self, tr("无法预览"), tr("无法读取这份 PDF，文件可能损坏或受到密码保护。"))
             return
+        try:
+            entry = self.library.import_pdf(path, self.pdf_preview.page_count)
+            owned_path = Path(entry['pdf'])
+            if not self.pdf_preview.load_pdf(owned_path):
+                raise OSError(tr('原谱暂时无法访问'))
+        except Exception as exc:
+            if old_path:
+                self.pdf_preview.load_pdf(old_path)
+            else:
+                self.pdf_preview.clear()
+            QMessageBox.warning(self, tr('无法保存曲谱库'), str(exc))
+            return
+        self.library_entry = entry
+        path = owned_path
+        self._switch_page(0)
         self.pdf_path = path.resolve()
         self.log_path = None
         self._log_lines.clear()
@@ -550,6 +588,7 @@ class MainWindow(QMainWindow):
         self.suspect_summary.setText(tr("完成后可在 MuseScore 中试听"))
         self.progress.setValue(0)
         self._refresh_controls()
+        self.library_page.reload(entry['id'])
 
     def _clear_pdf(self) -> None:
         if self.worker and self.worker.isRunning():
@@ -558,6 +597,7 @@ class MainWindow(QMainWindow):
         self._log_lines.clear()
         self.result_label.clear()
         self.pdf_path = self.output_path = None
+        self.library_entry = None
         self.pdf_preview.clear()
         self.import_title.setText(tr("导入乐谱"))
         self.import_stack.setCurrentWidget(self.drop_zone)
@@ -580,6 +620,7 @@ class MainWindow(QMainWindow):
     def _show_settings(self) -> None:
         if SettingsDialog(self.config, self).exec() == QDialog.DialogCode.Accepted:
             retranslate(self)
+            self.library_page.reload()
             self._refresh_controls()
 
     def _start_conversion(self) -> None:
@@ -627,6 +668,12 @@ class MainWindow(QMainWindow):
 
     def _conversion_succeeded(self, result: ConversionResult) -> None:
         self.output_path, self.log_path = result.output, result.log_file
+        if self.library_entry:
+            try:
+                self.library_entry = self.library.add_result(self.library_entry, result)
+                self.library_page.reload(self.library_entry['id'])
+            except Exception as exc:
+                QMessageBox.warning(self, tr('无法保存曲谱库'), str(exc))
         self.progress.setRange(0, 100)
         self.progress.setValue(100)
         self.status_label.setStyleSheet(f"color:{C['accent']};")
@@ -681,15 +728,54 @@ class MainWindow(QMainWindow):
     def _open_result(self) -> None:
         if not self.output_path:
             return
+        self._open_score_file(self.output_path)
+
+    def _open_score_file(self, path: Path) -> None:
         musescore = find_musescore(self.config.musescore_path)
         if not musescore:
             QMessageBox.warning(self, tr("未找到 MuseScore"), tr("请安装 MuseScore Studio，或在“设置”中选择 MuseScore4.exe。"))
             self._show_settings()
             return
         try:
-            open_in_musescore(musescore, self.output_path)
+            if not path.is_file():
+                raise FileNotFoundError(str(path))
+            open_in_musescore(musescore, path)
         except OSError as exc:
             QMessageBox.critical(self, tr("无法打开 MuseScore"), str(exc))
+
+    def _switch_page(self, index):
+        self.pages.setCurrentIndex(index)
+        self.conversion_tab.setChecked(index == 0)
+        self.library_tab.setChecked(index == 1)
+        if index == 1:
+            self.library_page.reload()
+
+    def _restore_score(self, entry, start=False):
+        if self.worker and self.worker.isRunning():
+            return
+        self._set_pdf(Path(entry['pdf']))
+        if not self.library_entry or self.library_entry['id'] != entry['id']:
+            return
+        if entry['versions']:
+            version = entry['versions'][0]
+            self.output_path = Path(version['path'])
+            self.log_path = Path(version['log'])
+            self.result_label.setText(str(self.output_path))
+            self.status_label.setText('●  ' + tr('已识别'))
+            self.progress.setValue(100)
+            self._refresh_controls()
+        if start:
+            self._start_conversion()
+
+    def _library_removed(self, identifier):
+        if self.library_entry and self.library_entry['id'] == identifier:
+            self._clear_pdf()
+
+    def _open_folder(self, folder):
+        try:
+            open_output_folder(folder)
+        except (OSError, RuntimeError) as exc:
+            QMessageBox.warning(self, tr('无法打开输出文件夹'), str(exc))
 
     def _show_log(self) -> None:
         dialog = QDialog(self)
@@ -719,6 +805,7 @@ class MainWindow(QMainWindow):
         self.import_stack.setEnabled(not running)
         self.file_panel.setEnabled(not running)
         self.output_edit.setEnabled(not running)
+        self.library_page.setEnabled(not running)
 
     def closeEvent(self, event) -> None:
         if self.worker and self.worker.isRunning():

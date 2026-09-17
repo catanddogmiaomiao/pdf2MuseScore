@@ -178,6 +178,33 @@ CATALOG = {'拖放 PDF 乐谱': {'en': 'Drop a PDF score here', 'ja': 'PDF楽譜
                              'ja': '認識を完了できません：{error}。ログ：{log}',
                              'ko': '인식을 완료할 수 없습니다: {error}. 로그: {log}'}}
 
+CATALOG.update({
+ '转换': {'en':'Convert','ja':'変換','ko':'변환'},
+ '曲谱库': {'en':'Score library','ja':'楽譜ライブラリ','ko':'악보 보관함'},
+ '＋ 导入曲谱': {'en':'＋ Import score','ja':'＋ 楽譜を追加','ko':'＋ 악보 가져오기'},
+ '搜索曲谱': {'en':'Search scores','ja':'楽譜を検索','ko':'악보 검색'},
+ '还没有曲谱，导入一份 PDF 开始。': {'en':'Import a PDF to add your first score.','ja':'PDFを追加して始めましょう。','ko':'PDF를 가져와 시작하세요.'},
+ '无法读取曲谱库': {'en':'Cannot read score library','ja':'ライブラリを読み込めません','ko':'보관함을 읽을 수 없습니다'},
+ '无法保存曲谱库': {'en':'Cannot save score library','ja':'ライブラリを保存できません','ko':'보관함을 저장할 수 없습니다'},
+ '{count} 份曲谱': {'en':'{count} scores','ja':'{count} 件の楽譜','ko':'악보 {count}개'},
+ '已识别': {'en':'Recognized','ja':'認識済み','ko':'인식 완료'},
+ '未识别': {'en':'Not recognized','ja':'未認識','ko':'인식 전'},
+ '{pages} 页 · {state} · {date}': {'en':'{pages} pages · {state} · {date}','ja':'{pages} ページ · {state} · {date}','ko':'{pages}페이지 · {state} · {date}'},
+ '{pages} 页': {'en':'{pages} pages','ja':'{pages} ページ','ko':'{pages}페이지'},
+ '原谱暂时无法访问': {'en':'Original PDF is unavailable','ja':'元のPDFにアクセスできません','ko':'원본 PDF에 접근할 수 없습니다'},
+ '查看原谱': {'en':'View PDF','ja':'元の楽譜を見る','ko':'원본 보기'},
+ '更多': {'en':'More','ja':'その他','ko':'더 보기'},
+ '打开版本': {'en':'Version to open','ja':'開くバージョン','ko':'열 버전'},
+ '我的修改 · MuseScore': {'en':'My edits · MuseScore','ja':'編集済み · MuseScore','ko':'내 수정본 · MuseScore'},
+ '识别结果 · {date}': {'en':'Recognition · {date}','ja':'認識結果 · {date}','ko':'인식 결과 · {date}'},
+ '打开文件夹': {'en':'Open folder','ja':'フォルダーを開く','ko':'폴더 열기'},
+ '关联 MuseScore 文件': {'en':'Link MuseScore file','ja':'MuseScoreファイルを関連付け','ko':'MuseScore 파일 연결'},
+ '重命名': {'en':'Rename','ja':'名前を変更','ko':'이름 바꾸기'},
+ '曲谱名称': {'en':'Score title','ja':'楽譜の名前','ko':'악보 이름'},
+ '从曲谱库移除': {'en':'Remove from library','ja':'ライブラリから削除','ko':'보관함에서 제거'},
+ '移除这份曲谱？PDF 和识别文件仍保留在本地。': {'en':'Remove this score? PDF and recognition files will stay on disk.','ja':'削除しますか？PDFと認識ファイルはディスクに残ります。','ko':'이 악보를 제거할까요? PDF와 인식 파일은 디스크에 남습니다。'},
+})
+
 def set_language(language):
     global _language, _qt_translator
     _language = language if language in LANGUAGES else 'zh_CN'

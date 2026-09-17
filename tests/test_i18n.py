@@ -36,7 +36,7 @@ class I18nTests(unittest.TestCase):
             self.assertEqual(set(translations), {'en', 'ja', 'ko'})
             for text in translations.values():
                 self.assertEqual(fields(key), fields(text), key)
-        for name in ('ui.py', 'converter.py'):
+        for name in ('ui.py', 'converter.py', 'library_ui.py'):
             source = Path(__file__).parent.parent / 'pdf2muse' / name
             for node in ast.walk(ast.parse(source.read_text(encoding='utf-8'))):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'tr':
