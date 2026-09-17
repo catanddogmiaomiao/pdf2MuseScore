@@ -390,7 +390,7 @@ class MainWindow(QMainWindow):
         row.addWidget(icon)
         row.addSpacing(8)
         row.addLayout(titles)
-        row.addStretch()
+        row.addSpacing(32)
         self.conversion_tab = QPushButton(tr('转换'))
         self.library_tab = QPushButton(tr('曲谱库'))
         for index, button in enumerate((self.conversion_tab, self.library_tab)):
@@ -399,6 +399,7 @@ class MainWindow(QMainWindow):
             button.clicked.connect(lambda checked, page=index: self._switch_page(page))
             row.addWidget(button)
         self.conversion_tab.setChecked(True)
+        row.addStretch()
         row.addWidget(settings)
         return row
 
