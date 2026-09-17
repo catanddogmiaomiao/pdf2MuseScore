@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import threading
 
-from PyQt6.QtCore import QPointF, QThread, Qt, QUrl, pyqtSignal
-from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap, QDesktopServices
+from PyQt6.QtCore import QPointF, QThread, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (
@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
 
 from .config import AppConfig
 from .converter import ConversionError, ConversionResult, ConversionCancelled, convert_with_homr
-from .tools import find_homr_python, find_musescore, open_in_musescore
+from .tools import find_homr_python, find_musescore, open_in_musescore, open_output_folder
 
 
 C = {
@@ -485,7 +485,7 @@ class MainWindow(QMainWindow):
         self.result_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self.result_label)
         self.folder_button = QPushButton("打开输出文件夹")
-        self.folder_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.output_path.parent))) if self.output_path else None)
+        self.folder_button.clicked.connect(self._open_output_folder)
         layout.addWidget(self.folder_button)
         action_row = QHBoxLayout()
         self.open_button = QPushButton("在 MuseScore 中打开")
@@ -646,6 +646,20 @@ class MainWindow(QMainWindow):
         self.progress.setValue(0)
         self.status_label.setText("●  已取消识别")
         self.suspect_summary.setText("可重新开始识别")
+
+    def _open_output_folder(self) -> None:
+        if not self.output_path:
+            return
+        try:
+            open_output_folder(self.output_path.parent)
+        except (OSError, RuntimeError) as exc:
+            self._receive_log(f"打开输出文件夹失败：{exc}")
+            QMessageBox.warning(
+                self, "无法打开输出文件夹",
+                "输出目录暂时无法访问，请检查 SD 卡或移动硬盘是否已连接。\n"
+                "重新连接后可以再次点击打开。\n\n"
+                f"目录：{self.output_path.parent}",
+            )
 
     def _open_result(self) -> None:
         if not self.output_path:

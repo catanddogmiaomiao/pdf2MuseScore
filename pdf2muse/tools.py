@@ -44,3 +44,11 @@ def find_musescore(configured: Path | None = None) -> Path | None:
 
 def open_in_musescore(executable: Path, score: Path) -> None:
     subprocess.Popen([str(executable), str(score)], close_fds=True)
+
+
+def open_output_folder(folder: Path) -> None:
+    """Check availability and let Explorer open the folder; propagate OS errors."""
+    folder = folder.resolve(strict=True)
+    if not folder.is_dir():
+        raise NotADirectoryError(str(folder))
+    os.startfile(str(folder), "explore")
