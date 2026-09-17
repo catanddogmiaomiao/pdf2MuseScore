@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import threading
 
-from PyQt6.QtCore import QPointF, QThread, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
+from PyQt6.QtCore import QPointF, QSize, QThread, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (
@@ -385,7 +385,26 @@ class MainWindow(QMainWindow):
         subtitle.setObjectName("subtitle")
         titles.addWidget(brand)
         titles.addWidget(subtitle)
-        settings = QPushButton(tr("设置"))
+        settings = QPushButton()
+        settings.setFixedSize(44, 44)
+        settings.setStyleSheet('QPushButton{padding:0;}')
+        settings.setToolTip(tr('设置'))
+        settings.setAccessibleName(tr('设置'))
+        glyph = QPixmap(48, 48)
+        glyph.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(glyph)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pen = QPen(QColor(C['text']), 3)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        painter.drawLine(22, 15, 37, 15)
+        painter.drawLine(11, 33, 26, 33)
+        painter.setBrush(QColor(C['card']))
+        painter.drawEllipse(QPointF(15, 15), 5, 5)
+        painter.drawEllipse(QPointF(33, 33), 5, 5)
+        painter.end()
+        settings.setIcon(QIcon(glyph))
+        settings.setIconSize(QSize(24, 24))
         settings.clicked.connect(self._show_settings)
         row.addWidget(icon)
         row.addSpacing(8)

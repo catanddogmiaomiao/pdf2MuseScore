@@ -234,6 +234,7 @@ def retranslate(root):
     for widget in [root, *root.findChildren(QWidget)]:
         widget.setWindowTitle(translated(widget.windowTitle()))
         widget.setToolTip(translated(widget.toolTip()))
+        widget.setAccessibleName(translated(widget.accessibleName()))
         if isinstance(widget, (QLabel, QPushButton)) and not widget.property('literalText'):
             widget.setText(translated(widget.text()))
         if isinstance(widget, QLineEdit):
