@@ -10,28 +10,12 @@ def _valid(path: Path | None) -> Path | None:
     return path.resolve() if path and path.is_file() else None
 
 
-def find_audiveris(configured: Path | None = None) -> Path | None:
-    program_files = Path(os.environ.get("PROGRAMFILES", r"C:\Program Files"))
-    local_app_data = Path(os.environ.get("LOCALAPPDATA", "")) if os.environ.get("LOCALAPPDATA") else None
-    candidates = [
-        configured,
-        Path(os.environ.get("AUDIVERIS_PATH", "")) if os.environ.get("AUDIVERIS_PATH") else None,
-        Path(r"C:\Program Files\Audiveris\Audiveris.exe"),
-        Path(r"C:\Program Files\Audiveris\bin\Audiveris.exe"),
-        Path(r"C:\Program Files (x86)\Audiveris\Audiveris.exe"),
-    ]
-    on_path = shutil.which("Audiveris") or shutil.which("Audiveris.exe")
-    if on_path:
-        candidates.insert(1, Path(on_path))
-    candidates.extend(sorted(program_files.glob("Audiveris*/Audiveris.exe"), reverse=True))
-    if local_app_data:
-        candidates.extend(
-            sorted(
-                (local_app_data / "PDF2Muse").glob("Audiveris*/Audiveris.exe"),
-                reverse=True,
-            )
-        )
-    for candidate in candidates:
+def find_homr_python(configured: Path | None = None) -> Path | None:
+    import sys
+    base = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent.parent
+    local = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'PDF2Muse'
+    for candidate in (configured, base / '.homr-runtime' / 'Scripts' / 'python.exe',
+                      local / 'homr-runtime' / 'Scripts' / 'python.exe'):
         if found := _valid(candidate):
             return found
     return None

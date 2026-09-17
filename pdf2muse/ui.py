@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+import threading
 
-from PyQt6.QtCore import QPointF, QThread, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
+from PyQt6.QtCore import QPointF, QThread, Qt, QUrl, pyqtSignal
+from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap, QDesktopServices
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (
@@ -13,8 +14,8 @@ from PyQt6.QtWidgets import (
 )
 
 from .config import AppConfig
-from .converter import ConversionError, ConversionResult, convert_with_audiveris
-from .tools import find_audiveris, find_musescore, open_in_musescore
+from .converter import ConversionError, ConversionResult, ConversionCancelled, convert_with_homr
+from .tools import find_homr_python, find_musescore, open_in_musescore
 
 
 C = {
@@ -234,22 +235,26 @@ class PdfPreview(QFrame):
 
 
 class ConversionWorker(QThread):
-    progress = pyqtSignal(int)
+    stage = pyqtSignal(str)
+    cancelled = pyqtSignal()
     log = pyqtSignal(str)
     succeeded = pyqtSignal(object)
     failed = pyqtSignal(str)
 
-    def __init__(self, pdf: Path, output_dir: Path, audiveris: Path) -> None:
+    def __init__(self, pdf: Path, output_dir: Path, homr_python: Path) -> None:
         super().__init__()
-        self.pdf, self.output_dir, self.audiveris = pdf, output_dir, audiveris
+        self.pdf, self.output_dir, self.homr_python = pdf, output_dir, homr_python
+        self.cancel_event = threading.Event()
 
     def run(self) -> None:
         try:
-            result = convert_with_audiveris(
-                self.pdf, self.output_dir, self.audiveris,
-                self.log.emit, self.progress.emit,
+            result = convert_with_homr(
+                self.pdf, self.output_dir, self.homr_python,
+                self.log.emit, self.stage.emit, self.cancel_event,
             )
-        except (ConversionError, OSError) as exc:
+        except ConversionCancelled:
+            self.cancelled.emit()
+        except Exception as exc:
             self.failed.emit(str(exc))
         else:
             self.succeeded.emit(result)
@@ -268,11 +273,11 @@ class SettingsDialog(QDialog):
         heading = QLabel("本地工具路径")
         heading.setObjectName("section")
         layout.addWidget(heading)
-        note = QLabel("程序会自动查找；自动检测失败时可在这里手动指定。")
+        note = QLabel("首次使用请运行 setup-homr.ps1，下载依赖和模型。")
         note.setObjectName("muted")
         layout.addWidget(note)
         layout.addSpacing(8)
-        self.audiveris_edit = self._path_row(layout, "Audiveris", config.audiveris_path, "Audiveris.exe")
+        self.homr_edit = self._path_row(layout, "HOMR 独立环境 Python", config.homr_python, "python.exe")
         self.musescore_edit = self._path_row(layout, "MuseScore Studio", config.musescore_path, "MuseScore4.exe")
         buttons = QHBoxLayout()
         buttons.addStretch()
@@ -305,7 +310,7 @@ class SettingsDialog(QDialog):
             edit.setText(path)
 
     def _save(self) -> None:
-        self.config.audiveris_path = Path(self.audiveris_edit.text()) if self.audiveris_edit.text() else None
+        self.config.homr_python = Path(self.homr_edit.text()) if self.homr_edit.text() else None
         self.config.musescore_path = Path(self.musescore_edit.text()) if self.musescore_edit.text() else None
         self.accept()
 
@@ -425,7 +430,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
         layout.addWidget(QLabel("输出格式"))
         self.format_combo = QComboBox()
-        self.format_combo.addItem("MusicXML 压缩文件 (.mxl)", "mxl")
+        self.format_combo.addItem("MusicXML 文件 (.musicxml)", "musicxml")
         layout.addWidget(self.format_combo)
         layout.addWidget(QLabel("保存位置"))
         path_row = QHBoxLayout()
@@ -442,7 +447,12 @@ class MainWindow(QMainWindow):
         self.convert_button.setObjectName("primary")
         self.convert_button.clicked.connect(self._start_conversion)
         layout.addWidget(self.convert_button)
+        self.cancel_button = QPushButton("取消识别")
+        self.cancel_button.clicked.connect(self._cancel_conversion)
+        self.cancel_button.hide()
+        layout.addWidget(self.cancel_button)
         tip = QLabel("转换后可在 MuseScore 中编辑和播放")
+        tip.setMinimumHeight(24)
         tip.setObjectName("muted")
         tip.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(tip)
@@ -463,12 +473,20 @@ class MainWindow(QMainWindow):
         line.setStyleSheet(f"color:{C['border']};")
         layout.addWidget(line)
         suspect_row = QHBoxLayout()
-        suspect_row.addWidget(QLabel("检查提示"))
+        suspect_row.addWidget(QLabel("输出结果"))
         suspect_row.addStretch()
-        self.suspect_summary = QLabel("识别完成后显示")
+        self.suspect_summary = QLabel("完成后可在 MuseScore 中试听")
         self.suspect_summary.setObjectName("muted")
         suspect_row.addWidget(self.suspect_summary)
         layout.addLayout(suspect_row)
+        self.result_label = QLabel("")
+        self.result_label.setMinimumHeight(32)
+        self.result_label.setWordWrap(True)
+        self.result_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.result_label)
+        self.folder_button = QPushButton("打开输出文件夹")
+        self.folder_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.output_path.parent))) if self.output_path else None)
+        layout.addWidget(self.folder_button)
         action_row = QHBoxLayout()
         self.open_button = QPushButton("在 MuseScore 中打开")
         self.open_button.clicked.connect(self._open_result)
@@ -490,7 +508,7 @@ class MainWindow(QMainWindow):
         label.setObjectName("muted")
         row.addWidget(label)
         row.addStretch()
-        version = QLabel("PDF2Muse 0.1")
+        version = QLabel("PDF2Muse 0.2 · HOMR")
         version.setObjectName("muted")
         row.addWidget(version)
         return footer
@@ -501,6 +519,8 @@ class MainWindow(QMainWindow):
             self._set_pdf(Path(path))
 
     def _set_pdf(self, path: Path) -> None:
+        if self.worker and self.worker.isRunning():
+            return
         if path.suffix.lower() != ".pdf" or not path.is_file():
             QMessageBox.warning(self, "无法导入", "请选择有效的 PDF 文件。")
             return
@@ -511,6 +531,9 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "无法预览", "无法读取这份 PDF，文件可能损坏或受到密码保护。")
             return
         self.pdf_path = path.resolve()
+        self.log_path = None
+        self._log_lines.clear()
+        self.result_label.clear()
         self.output_path = None
         self.import_title.setText("乐谱预览")
         self.import_stack.setCurrentWidget(self.pdf_preview)
@@ -520,11 +543,16 @@ class MainWindow(QMainWindow):
         self.file_meta.setText(f"PDF 乐谱  ·  {self.pdf_preview.page_count} 页  ·  {size_mb:.1f} MB  ·  已就绪")
         self.status_label.setText("●  已选择文件")
         self.status_label.setStyleSheet("")
-        self.suspect_summary.setText("识别完成后显示")
+        self.suspect_summary.setText("完成后可在 MuseScore 中试听")
         self.progress.setValue(0)
         self._refresh_controls()
 
     def _clear_pdf(self) -> None:
+        if self.worker and self.worker.isRunning():
+            return
+        self.log_path = None
+        self._log_lines.clear()
+        self.result_label.clear()
         self.pdf_path = self.output_path = None
         self.pdf_preview.clear()
         self.import_title.setText("导入乐谱")
@@ -533,7 +561,7 @@ class MainWindow(QMainWindow):
         self.file_meta.setText("请选择一份 PDF 乐谱")
         self.status_label.setText("●  等待开始")
         self.status_label.setStyleSheet("")
-        self.suspect_summary.setText("识别完成后显示")
+        self.suspect_summary.setText("完成后可在 MuseScore 中试听")
         self.progress.setValue(0)
         self._refresh_controls()
 
@@ -548,11 +576,11 @@ class MainWindow(QMainWindow):
         SettingsDialog(self.config, self).exec()
 
     def _start_conversion(self) -> None:
-        if not self.pdf_path:
+        if not self.pdf_path or (self.worker and self.worker.isRunning()):
             return
-        audiveris = find_audiveris(self.config.audiveris_path)
-        if not audiveris:
-            QMessageBox.warning(self, "未找到 Audiveris", "请安装 Audiveris，或在“设置”中选择 Audiveris.exe。")
+        homr_python = find_homr_python(self.config.homr_python)
+        if not homr_python:
+            QMessageBox.warning(self, "尚未配置 HOMR", "请先运行 setup-homr.ps1 安装本地识别环境，再在设置中选择该环境的 python.exe。")
             self._show_settings()
             return
         output_dir = Path(self.output_edit.text()).expanduser() if self.output_edit.text().strip() else self.pdf_path.parent
@@ -565,17 +593,20 @@ class MainWindow(QMainWindow):
         self.status_label.setStyleSheet("")
         self.status_label.setText("●  正在识别乐谱…")
         self.suspect_summary.setText("正在分析页面和乐谱结构…")
-        self.progress.setValue(2)
+        self.progress.setRange(0, 0)
+        self.log_path = None
+        self.result_label.clear()
         self.output_path = None
         self._log_lines = []
-        self.worker = ConversionWorker(self.pdf_path, output_dir, audiveris)
-        self.worker.progress.connect(self.progress.setValue)
+        self.worker = ConversionWorker(self.pdf_path, output_dir, homr_python)
+        self.worker.stage.connect(lambda text: self.status_label.setText("●  " + text))
+        self.worker.cancelled.connect(self._conversion_cancelled)
         self.worker.log.connect(self._receive_log)
         self.worker.succeeded.connect(self._conversion_succeeded)
         self.worker.failed.connect(self._conversion_failed)
         self.worker.finished.connect(self._refresh_controls)
-        self._refresh_controls()
         self.worker.start()
+        self._refresh_controls()
 
     def _receive_log(self, line: str) -> None:
         self._log_lines.append(line)
@@ -583,26 +614,38 @@ class MainWindow(QMainWindow):
 
     def _conversion_succeeded(self, result: ConversionResult) -> None:
         self.output_path, self.log_path = result.output, result.log_file
+        self.progress.setRange(0, 100)
         self.progress.setValue(100)
         self.status_label.setStyleSheet(f"color:{C['accent']};")
+        self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
+        self.suspect_summary.setText("打开 MuseScore 试听并检查")
         if result.skipped_pages:
-            pages = "、".join(str(page) for page in result.skipped_pages)
-            self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
-            self.suspect_summary.setText(f"已跳过无五线谱页面：第 {pages} 页")
-        else:
-            self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
-            self.suspect_summary.setText("未发现阻断转换的问题")
+            self.suspect_summary.setText("已跳过纯空白页：" + "、".join(map(str, result.skipped_pages)))
+        self.result_label.setText(str(result.output))
         self.file_meta.setText(f"输出：{result.output.name}")
         self.convert_button.setText("重新识别")
         self._refresh_controls()
 
     def _conversion_failed(self, message: str) -> None:
+        self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.status_label.setStyleSheet(f"color:{C['danger']};")
         self.status_label.setText("●  识别失败")
         self.suspect_summary.setText("请查看日志中的最后一条错误")
         self._refresh_controls()
         QMessageBox.critical(self, "识别失败", message)
+
+    def _cancel_conversion(self) -> None:
+        if self.worker and self.worker.isRunning():
+            self.worker.cancel_event.set()
+            self.cancel_button.setEnabled(False)
+            self.status_label.setText("●  正在取消…")
+
+    def _conversion_cancelled(self) -> None:
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
+        self.status_label.setText("●  已取消识别")
+        self.suspect_summary.setText("可重新开始识别")
 
     def _open_result(self) -> None:
         if not self.output_path:
@@ -636,10 +679,18 @@ class MainWindow(QMainWindow):
         running = self.worker is not None and self.worker.isRunning()
         self.convert_button.setEnabled(bool(self.pdf_path) and not running)
         self.open_button.setEnabled(bool(self.output_path) and not running)
+        self.folder_button.setEnabled(bool(self.output_path) and not running)
+        self.cancel_button.setVisible(running)
+        self.cancel_button.setEnabled(running)
+        self.import_stack.setEnabled(not running)
+        self.file_panel.setEnabled(not running)
+        self.output_edit.setEnabled(not running)
 
     def closeEvent(self, event) -> None:
         if self.worker and self.worker.isRunning():
-            QMessageBox.information(self, "正在识别", "Audiveris 正在识别乐谱，请等待转换完成后再关闭。")
-            event.ignore()
-        else:
-            super().closeEvent(event)
+            self._cancel_conversion()
+            self.worker.wait(7000)
+            if self.worker.isRunning():
+                event.ignore()
+                return
+        super().closeEvent(event)

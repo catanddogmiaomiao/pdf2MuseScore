@@ -10,13 +10,13 @@ class AppConfig:
         self._settings = QSettings()
 
     @property
-    def audiveris_path(self) -> Path | None:
-        value = self._settings.value("tools/audiveris", "", str)
+    def homr_python(self) -> Path | None:
+        value = self._settings.value("tools/homr_python", "", str)
         return Path(value) if value else None
 
-    @audiveris_path.setter
-    def audiveris_path(self, value: Path | None) -> None:
-        self._settings.setValue("tools/audiveris", str(value or ""))
+    @homr_python.setter
+    def homr_python(self, value: Path | None) -> None:
+        self._settings.setValue("tools/homr_python", str(value or ""))
 
     @property
     def musescore_path(self) -> Path | None:

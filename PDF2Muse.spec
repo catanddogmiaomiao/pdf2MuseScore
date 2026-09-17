@@ -11,6 +11,9 @@ a = Analysis(
     pathex=[str(project_root)],
     binaries=[],
     datas=[
+        (str(project_root / "pdf2muse" / "homr_runner.py"), "pdf2muse"),
+        (str(project_root / "setup-homr.ps1"), "."),
+        (str(project_root / "requirements-homr.txt"), "."),
         (str(assets_dir / "app-icon.png"), "assets"),
         (str(assets_dir / "app-icon.ico"), "assets"),
     ],
@@ -18,10 +21,21 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["PyQt5", "PySide2", "PySide6", "tkinter"],
+    excludes=["PyQt5", "PySide2", "PySide6", "tkinter", "homr", "onnxruntime", "numpy", "cv2", "torch"],
     noarchive=False,
     optimize=1,
 )
+
+# Qt uses Windows ICU APIs. Poppler may introduce an incompatible ICU DLL.
+import pefile
+qt_core = next((entry[1] for entry in a.binaries if entry[0].lower().endswith('qt6core.dll')), None)
+if qt_core:
+    pe = pefile.PE(qt_core, fast_load=True)
+    pe.parse_data_directories(directories=[pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_IMPORT']])
+    windows_icu = any(item.dll.lower() == b'icu.dll' for item in getattr(pe, 'DIRECTORY_ENTRY_IMPORT', []))
+    pe.close()
+    if windows_icu:
+        a.binaries = [entry for entry in a.binaries if not Path(entry[0]).name.lower().startswith(('icuuc', 'icudt'))]
 
 pyz = PYZ(a.pure)
 

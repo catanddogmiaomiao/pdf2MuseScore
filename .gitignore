@@ -17,3 +17,6 @@ tools/
 *.log
 *.msi
 *.exe
+
+.homr-runtime/
+.pdf2muse/
