@@ -14,7 +14,8 @@ from PyQt6.QtWidgets import (
 )
 
 from .config import AppConfig
-from .converter import ConversionError, ConversionResult, ConversionCancelled, convert_with_homr
+from .i18n import tr, set_language, retranslate, LANGUAGES
+from .converter import ConversionError, ConversionResult, ConversionCancelled, MemoryConversionError, convert_with_homr
 from .tools import find_homr_python, find_musescore, open_in_musescore, open_output_folder
 
 
@@ -91,14 +92,14 @@ class DropZone(QFrame):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(10)
         layout.addWidget(DocumentGlyph(), 0, Qt.AlignmentFlag.AlignHCenter)
-        title = QLabel("拖放 PDF 乐谱")
+        title = QLabel(tr("拖放 PDF 乐谱"))
         title.setObjectName("dropTitle")
         layout.addWidget(title, 0, Qt.AlignmentFlag.AlignHCenter)
-        subtitle = QLabel("或从电脑中选择文件")
+        subtitle = QLabel(tr("或从电脑中选择文件"))
         subtitle.setObjectName("muted")
         layout.addWidget(subtitle, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addSpacing(15)
-        self.choose_button = QPushButton("＋    选择 PDF")
+        self.choose_button = QPushButton(tr("＋    选择 PDF"))
         self.choose_button.setObjectName("light")
         self.choose_button.setFixedWidth(182)
         layout.addWidget(self.choose_button, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -152,14 +153,14 @@ class PdfPreview(QFrame):
 
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
-        self.previous_button = QPushButton("上一页")
+        self.previous_button = QPushButton(tr("上一页"))
         self.previous_button.setFixedHeight(34)
-        self.next_button = QPushButton("下一页")
+        self.next_button = QPushButton(tr("下一页"))
         self.next_button.setFixedHeight(34)
-        self.page_label = QLabel("第 0 / 0 页")
+        self.page_label = QLabel(tr("第 0 / 0 页"))
         self.page_label.setObjectName("muted")
         self.page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        change_button = QPushButton("更换 PDF")
+        change_button = QPushButton(tr("更换 PDF"))
         change_button.setFixedHeight(34)
         self.previous_button.clicked.connect(lambda: self._jump(-1))
         self.next_button.clicked.connect(lambda: self._jump(1))
@@ -206,7 +207,7 @@ class PdfPreview(QFrame):
     def _update_navigation(self, *args) -> None:
         count = self.document.pageCount()
         current = self.view.pageNavigator().currentPage() if count else -1
-        self.page_label.setText(f"第 {current + 1 if count else 0} / {count} 页")
+        self.page_label.setText(tr("第 {page} / {count} 页", page=current + 1 if count else 0, count=count))
         self.previous_button.setEnabled(count > 0 and current > 0)
         self.next_button.setEnabled(count > 0 and current < count - 1)
 
@@ -239,7 +240,7 @@ class ConversionWorker(QThread):
     cancelled = pyqtSignal()
     log = pyqtSignal(str)
     succeeded = pyqtSignal(object)
-    failed = pyqtSignal(str)
+    failed = pyqtSignal(object)
 
     def __init__(self, pdf: Path, output_dir: Path, homr_python: Path) -> None:
         super().__init__()
@@ -255,7 +256,7 @@ class ConversionWorker(QThread):
         except ConversionCancelled:
             self.cancelled.emit()
         except Exception as exc:
-            self.failed.emit(str(exc))
+            self.failed.emit(exc)
         else:
             self.succeeded.emit(result)
 
@@ -264,25 +265,32 @@ class SettingsDialog(QDialog):
     def __init__(self, config: AppConfig, parent: QWidget) -> None:
         super().__init__(parent)
         self.config = config
-        self.setWindowTitle("设置")
+        self.setWindowTitle(tr("设置"))
         self.setMinimumWidth(620)
         self.setStyleSheet(STYLE)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(26, 24, 26, 24)
         layout.setSpacing(12)
-        heading = QLabel("本地工具路径")
+        heading = QLabel(tr("本地工具路径"))
         heading.setObjectName("section")
         layout.addWidget(heading)
-        note = QLabel("首次使用请运行 setup-homr.ps1，下载依赖和模型。")
+        note = QLabel(tr("首次使用请运行 setup-homr.ps1，下载依赖和模型。"))
         note.setObjectName("muted")
+        note.setWordWrap(True)
         layout.addWidget(note)
+        layout.addWidget(QLabel(tr("语言")))
+        self.language_combo = QComboBox()
+        for code, name in LANGUAGES.items():
+            self.language_combo.addItem(name, code)
+        self.language_combo.setCurrentIndex(self.language_combo.findData(config.language))
+        layout.addWidget(self.language_combo)
         layout.addSpacing(8)
-        self.homr_edit = self._path_row(layout, "HOMR 独立环境 Python", config.homr_python, "python.exe")
+        self.homr_edit = self._path_row(layout, tr("HOMR 独立环境 Python"), config.homr_python, "python.exe")
         self.musescore_edit = self._path_row(layout, "MuseScore Studio", config.musescore_path, "MuseScore4.exe")
         buttons = QHBoxLayout()
         buttons.addStretch()
-        cancel = QPushButton("取消")
-        save = QPushButton("保存")
+        cancel = QPushButton(tr("取消"))
+        save = QPushButton(tr("保存"))
         save.setObjectName("primary")
         save.setFixedWidth(110)
         cancel.clicked.connect(self.reject)
@@ -296,8 +304,8 @@ class SettingsDialog(QDialog):
         layout.addWidget(QLabel(title))
         row = QHBoxLayout()
         edit = QLineEdit(str(value or ""))
-        edit.setPlaceholderText("自动检测")
-        browse = QPushButton("浏览…")
+        edit.setPlaceholderText(tr("自动检测"))
+        browse = QPushButton(tr("浏览…"))
         browse.clicked.connect(lambda: self._browse(edit, executable))
         row.addWidget(edit, 1)
         row.addWidget(browse)
@@ -305,13 +313,15 @@ class SettingsDialog(QDialog):
         return edit
 
     def _browse(self, edit: QLineEdit, executable: str) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "选择程序", edit.text(), f"{executable} (*.exe);;程序 (*.exe)")
+        path, _ = QFileDialog.getOpenFileName(self, tr("选择程序"), edit.text(), tr("{executable} (*.exe);;程序 (*.exe)", executable=executable))
         if path:
             edit.setText(path)
 
     def _save(self) -> None:
         self.config.homr_python = Path(self.homr_edit.text()) if self.homr_edit.text() else None
         self.config.musescore_path = Path(self.musescore_edit.text()) if self.musescore_edit.text() else None
+        self.config.language = self.language_combo.currentData()
+        set_language(self.config.language)
         self.accept()
 
 
@@ -319,6 +329,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.config = AppConfig()
+        set_language(self.config.language)
         self.pdf_path: Path | None = None
         self.output_path: Path | None = None
         self.log_path: Path | None = None
@@ -355,11 +366,11 @@ class MainWindow(QMainWindow):
         titles.setSpacing(0)
         brand = QLabel("pdf2muse")
         brand.setObjectName("brand")
-        subtitle = QLabel("PDF 乐谱转换")
+        subtitle = QLabel(tr("PDF 乐谱转换"))
         subtitle.setObjectName("subtitle")
         titles.addWidget(brand)
         titles.addWidget(subtitle)
-        settings = QPushButton("设置")
+        settings = QPushButton(tr("设置"))
         settings.clicked.connect(self._show_settings)
         row.addWidget(icon)
         row.addSpacing(8)
@@ -379,7 +390,7 @@ class MainWindow(QMainWindow):
 
     def _import_card(self) -> QFrame:
         frame, layout = self._card()
-        self.import_title = QLabel("导入乐谱")
+        self.import_title = QLabel(tr("导入乐谱"))
         self.import_title.setObjectName("section")
         layout.addWidget(self.import_title)
         self.drop_zone = DropZone()
@@ -405,15 +416,15 @@ class MainWindow(QMainWindow):
         badge.setFixedSize(42, 42)
         badge.setStyleSheet(f"background:#28222E;color:{C['accent']};border:1px solid #574A62;border-radius:8px;font-size:11px;font-weight:600;")
         file_text = QVBoxLayout()
-        self.file_name = QLabel("尚未选择文件")
-        self.file_meta = QLabel("请选择一份 PDF 乐谱")
+        self.file_name = QLabel(tr("尚未选择文件"))
+        self.file_meta = QLabel(tr("请选择一份 PDF 乐谱"))
         self.file_meta.setObjectName("muted")
         file_text.addWidget(self.file_name)
         file_text.addWidget(self.file_meta)
         clear = QPushButton("×")
         clear.setObjectName("link")
         clear.setFixedWidth(34)
-        clear.setToolTip("移除文件")
+        clear.setToolTip(tr("移除文件"))
         clear.clicked.connect(self._clear_pdf)
         file_row.addWidget(badge)
         file_row.addSpacing(5)
@@ -426,35 +437,35 @@ class MainWindow(QMainWindow):
         column = QVBoxLayout()
         column.setSpacing(18)
         settings, layout = self._card()
-        title = QLabel("转换设置")
+        title = QLabel(tr("转换设置"))
         title.setObjectName("section")
         layout.addWidget(title)
-        layout.addWidget(QLabel("输出格式"))
+        layout.addWidget(QLabel(tr("输出格式")))
         self.format_combo = QComboBox()
-        self.format_combo.addItem("MusicXML 文件 (.musicxml)", "musicxml")
+        self.format_combo.addItem(tr("MusicXML 文件 (.musicxml)"), "musicxml")
         layout.addWidget(self.format_combo)
-        layout.addWidget(QLabel("保存位置"))
+        layout.addWidget(QLabel(tr("保存位置")))
         path_row = QHBoxLayout()
         self.output_edit = QLineEdit(str(self.config.output_dir or ""))
-        self.output_edit.setPlaceholderText("与原文件相同的文件夹")
-        browse = QPushButton("选择")
-        browse.setFixedWidth(62)
-        browse.setToolTip("选择输出文件夹")
+        self.output_edit.setPlaceholderText(tr("与原文件相同的文件夹"))
+        browse = QPushButton(tr("选择"))
+        browse.setMinimumWidth(96)
+        browse.setToolTip(tr("选择输出文件夹"))
         browse.clicked.connect(self._choose_output_dir)
         path_row.addWidget(self.output_edit, 1)
         path_row.addWidget(browse)
         layout.addLayout(path_row)
-        self.convert_button = QPushButton("开始识别")
+        self.convert_button = QPushButton(tr("开始识别"))
         self.convert_button.setObjectName("primary")
         self.convert_button.clicked.connect(self._toggle_conversion)
         layout.addWidget(self.convert_button)
         column.addWidget(settings)
 
         status, layout = self._card()
-        title = QLabel("识别状态")
+        title = QLabel(tr("识别状态"))
         title.setObjectName("section")
         layout.addWidget(title)
-        self.status_label = QLabel("●  等待开始")
+        self.status_label = QLabel(tr("●  等待开始"))
         self.status_label.setObjectName("muted")
         layout.addWidget(self.status_label)
         self.progress = QProgressBar()
@@ -465,23 +476,24 @@ class MainWindow(QMainWindow):
         line.setStyleSheet(f"color:{C['border']};")
         layout.addWidget(line)
         suspect_row = QHBoxLayout()
-        suspect_row.addWidget(QLabel("输出结果"))
+        suspect_row.addWidget(QLabel(tr("输出结果")))
         suspect_row.addStretch()
-        self.suspect_summary = QLabel("完成后可在 MuseScore 中试听")
+        self.suspect_summary = QLabel(tr("完成后可在 MuseScore 中试听"))
         self.suspect_summary.setObjectName("muted")
         suspect_row.addWidget(self.suspect_summary)
         layout.addLayout(suspect_row)
         self.result_label = QLabel("")
+        self.result_label.setProperty("literalText", True)
         self.result_label.setWordWrap(True)
         self.result_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self.result_label)
-        self.folder_button = QPushButton("打开输出文件夹")
+        self.folder_button = QPushButton(tr("打开输出文件夹"))
         self.folder_button.clicked.connect(self._open_output_folder)
         layout.addWidget(self.folder_button)
         action_row = QHBoxLayout()
-        self.open_button = QPushButton("在 MuseScore 中打开")
+        self.open_button = QPushButton(tr("在 MuseScore 中打开"))
         self.open_button.clicked.connect(self._open_result)
-        log_button = QPushButton("查看日志 →")
+        log_button = QPushButton(tr("查看日志 →"))
         log_button.setObjectName("link")
         log_button.clicked.connect(self._show_log)
         action_row.addWidget(self.open_button, 1)
@@ -495,7 +507,7 @@ class MainWindow(QMainWindow):
         footer.setFixedHeight(32)
         row = QHBoxLayout(footer)
         row.setContentsMargins(4, 0, 4, 0)
-        label = QLabel("免费  ·  本地识别  ·  无需上传")
+        label = QLabel(tr("免费  ·  本地识别  ·  无需上传"))
         label.setObjectName("muted")
         row.addWidget(label)
         row.addStretch()
@@ -505,7 +517,7 @@ class MainWindow(QMainWindow):
         return footer
 
     def _choose_pdf(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "选择 PDF 乐谱", "", "PDF 乐谱 (*.pdf)")
+        path, _ = QFileDialog.getOpenFileName(self, tr("选择 PDF 乐谱"), "", tr("PDF 乐谱 (*.pdf)"))
         if path:
             self._set_pdf(Path(path))
 
@@ -513,28 +525,29 @@ class MainWindow(QMainWindow):
         if self.worker and self.worker.isRunning():
             return
         if path.suffix.lower() != ".pdf" or not path.is_file():
-            QMessageBox.warning(self, "无法导入", "请选择有效的 PDF 文件。")
+            QMessageBox.warning(self, tr("无法导入"), tr("请选择有效的 PDF 文件。"))
             return
         old_path = self.pdf_path
         if not self.pdf_preview.load_pdf(path):
             if old_path:
                 self.pdf_preview.load_pdf(old_path)
-            QMessageBox.warning(self, "无法预览", "无法读取这份 PDF，文件可能损坏或受到密码保护。")
+            QMessageBox.warning(self, tr("无法预览"), tr("无法读取这份 PDF，文件可能损坏或受到密码保护。"))
             return
         self.pdf_path = path.resolve()
         self.log_path = None
         self._log_lines.clear()
         self.result_label.clear()
         self.output_path = None
-        self.import_title.setText("乐谱预览")
+        self.import_title.setText(tr("乐谱预览"))
         self.import_stack.setCurrentWidget(self.pdf_preview)
         self.file_name.setText(path.name)
+        self.file_name.setProperty("literalText", True)
         self.file_name.setToolTip(str(path))
         size_mb = path.stat().st_size / (1024 * 1024)
-        self.file_meta.setText(f"PDF 乐谱  ·  {self.pdf_preview.page_count} 页  ·  {size_mb:.1f} MB  ·  已就绪")
-        self.status_label.setText("●  已选择文件")
+        self.file_meta.setText(tr("PDF 乐谱  ·  {pages} 页  ·  {size} MB  ·  已就绪", pages=self.pdf_preview.page_count, size=f"{size_mb:.1f}"))
+        self.status_label.setText(tr("●  已选择文件"))
         self.status_label.setStyleSheet("")
-        self.suspect_summary.setText("完成后可在 MuseScore 中试听")
+        self.suspect_summary.setText(tr("完成后可在 MuseScore 中试听"))
         self.progress.setValue(0)
         self._refresh_controls()
 
@@ -546,44 +559,47 @@ class MainWindow(QMainWindow):
         self.result_label.clear()
         self.pdf_path = self.output_path = None
         self.pdf_preview.clear()
-        self.import_title.setText("导入乐谱")
+        self.import_title.setText(tr("导入乐谱"))
         self.import_stack.setCurrentWidget(self.drop_zone)
-        self.file_name.setText("尚未选择文件")
-        self.file_meta.setText("请选择一份 PDF 乐谱")
-        self.status_label.setText("●  等待开始")
+        self.file_name.setText(tr("尚未选择文件"))
+        self.file_name.setProperty("literalText", False)
+        self.file_meta.setText(tr("请选择一份 PDF 乐谱"))
+        self.status_label.setText(tr("●  等待开始"))
         self.status_label.setStyleSheet("")
-        self.suspect_summary.setText("完成后可在 MuseScore 中试听")
+        self.suspect_summary.setText(tr("完成后可在 MuseScore 中试听"))
         self.progress.setValue(0)
         self._refresh_controls()
 
     def _choose_output_dir(self) -> None:
         start = self.output_edit.text() or (str(self.pdf_path.parent) if self.pdf_path else "")
-        path = QFileDialog.getExistingDirectory(self, "选择保存位置", start)
+        path = QFileDialog.getExistingDirectory(self, tr("选择保存位置"), start)
         if path:
             self.output_edit.setText(path)
             self.config.output_dir = Path(path)
 
     def _show_settings(self) -> None:
-        SettingsDialog(self.config, self).exec()
+        if SettingsDialog(self.config, self).exec() == QDialog.DialogCode.Accepted:
+            retranslate(self)
+            self._refresh_controls()
 
     def _start_conversion(self) -> None:
         if not self.pdf_path or (self.worker and self.worker.isRunning()):
             return
         homr_python = find_homr_python(self.config.homr_python)
         if not homr_python:
-            QMessageBox.warning(self, "尚未配置 HOMR", "请先运行 setup-homr.ps1 安装本地识别环境，再在设置中选择该环境的 python.exe。")
+            QMessageBox.warning(self, tr("尚未配置 HOMR"), tr("请先运行 setup-homr.ps1 安装本地识别环境，再在设置中选择该环境的 python.exe。"))
             self._show_settings()
             return
         output_dir = Path(self.output_edit.text()).expanduser() if self.output_edit.text().strip() else self.pdf_path.parent
         try:
             output_dir.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            QMessageBox.warning(self, "无法使用保存位置", str(exc))
+            QMessageBox.warning(self, tr("无法使用保存位置"), str(exc))
             return
         self.config.output_dir = output_dir if self.output_edit.text().strip() else None
         self.status_label.setStyleSheet("")
-        self.status_label.setText("●  正在识别乐谱…")
-        self.suspect_summary.setText("正在分析页面和乐谱结构…")
+        self.status_label.setText(tr("●  正在识别乐谱…"))
+        self.suspect_summary.setText(tr("正在分析页面和乐谱结构…"))
         self.progress.setRange(0, 0)
         self.log_path = None
         self.result_label.clear()
@@ -614,24 +630,26 @@ class MainWindow(QMainWindow):
         self.progress.setRange(0, 100)
         self.progress.setValue(100)
         self.status_label.setStyleSheet(f"color:{C['accent']};")
-        self.status_label.setText(f"●  识别完成  ·  {result.elapsed_seconds:.1f} 秒")
-        self.suspect_summary.setText("打开 MuseScore 试听并检查")
+        self.status_label.setText(tr("●  识别完成  ·  {seconds} 秒", seconds=f"{result.elapsed_seconds:.1f}"))
+        self.suspect_summary.setText(tr("打开 MuseScore 试听并检查"))
         if result.skipped_pages:
-            self.suspect_summary.setText("已跳过纯空白页：" + "、".join(map(str, result.skipped_pages)))
+            self.suspect_summary.setText(tr("已跳过纯空白页：{pages}", pages=", ".join(map(str, result.skipped_pages))))
         self.result_label.setText(str(result.output))
-        self.file_meta.setText(f"输出：{result.output.name}")
-        self.convert_button.setText("重新识别")
+        self.file_meta.setText(tr("输出：{name}", name=result.output.name))
+        self.convert_button.setText(tr("重新识别"))
         self._refresh_controls()
 
-    def _conversion_failed(self, message: str) -> None:
+    def _conversion_failed(self, error: object) -> None:
+        memory_failure = isinstance(error, MemoryConversionError)
+        message = str(error)
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.status_label.setStyleSheet(f"color:{C['danger']};")
-        memory_error = message.startswith("识别内存不足")
-        title = "识别内存不足" if memory_error else "识别失败"
+        memory_error = memory_failure or message.startswith("识别内存不足")
+        title = tr("识别内存不足") if memory_error else tr("识别失败")
         self.status_label.setText("●  " + title)
         self.suspect_summary.setText(
-            "请关闭其他程序后重试" if memory_error else "请查看日志中的最后一条错误"
+            tr("请关闭其他程序后重试") if memory_error else tr("请查看日志中的最后一条错误")
         )
         self._refresh_controls()
         QMessageBox.critical(self, title, message)
@@ -640,13 +658,13 @@ class MainWindow(QMainWindow):
         if self.worker and self.worker.isRunning():
             self.worker.cancel_event.set()
             self._refresh_controls()
-            self.status_label.setText("●  正在取消…")
+            self.status_label.setText(tr("●  正在取消…"))
 
     def _conversion_cancelled(self) -> None:
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
-        self.status_label.setText("●  已取消识别")
-        self.suspect_summary.setText("可重新开始识别")
+        self.status_label.setText(tr("●  已取消识别"))
+        self.suspect_summary.setText(tr("可重新开始识别"))
 
     def _open_output_folder(self) -> None:
         if not self.output_path:
@@ -656,10 +674,8 @@ class MainWindow(QMainWindow):
         except (OSError, RuntimeError) as exc:
             self._receive_log(f"打开输出文件夹失败：{exc}")
             QMessageBox.warning(
-                self, "无法打开输出文件夹",
-                "输出目录暂时无法访问，请检查 SD 卡或移动硬盘是否已连接。\n"
-                "重新连接后可以再次点击打开。\n\n"
-                f"目录：{self.output_path.parent}",
+                self, tr("无法打开输出文件夹"),
+                tr("输出目录暂时无法访问，请检查 SD 卡或移动硬盘是否已连接。\n重新连接后可以再次点击打开。\n\n目录：{folder}", folder=self.output_path.parent),
             )
 
     def _open_result(self) -> None:
@@ -667,17 +683,17 @@ class MainWindow(QMainWindow):
             return
         musescore = find_musescore(self.config.musescore_path)
         if not musescore:
-            QMessageBox.warning(self, "未找到 MuseScore", "请安装 MuseScore Studio，或在“设置”中选择 MuseScore4.exe。")
+            QMessageBox.warning(self, tr("未找到 MuseScore"), tr("请安装 MuseScore Studio，或在“设置”中选择 MuseScore4.exe。"))
             self._show_settings()
             return
         try:
             open_in_musescore(musescore, self.output_path)
         except OSError as exc:
-            QMessageBox.critical(self, "无法打开 MuseScore", str(exc))
+            QMessageBox.critical(self, tr("无法打开 MuseScore"), str(exc))
 
     def _show_log(self) -> None:
         dialog = QDialog(self)
-        dialog.setWindowTitle("转换日志")
+        dialog.setWindowTitle(tr("转换日志"))
         dialog.resize(780, 480)
         dialog.setStyleSheet(STYLE)
         layout = QVBoxLayout(dialog)
@@ -686,7 +702,7 @@ class MainWindow(QMainWindow):
         if self.log_path and self.log_path.exists():
             log.setPlainText(self.log_path.read_text(encoding="utf-8", errors="replace"))
         else:
-            log.setPlainText("\n".join(self._log_lines) or "尚无转换日志。")
+            log.setPlainText("\n".join(self._log_lines) or tr("尚无转换日志。"))
         layout.addWidget(log)
         dialog.exec()
 
@@ -694,8 +710,8 @@ class MainWindow(QMainWindow):
         running = self.worker is not None and self.worker.isRunning()
         cancelling = running and self.worker.cancel_event.is_set()
         self.convert_button.setText(
-            "正在取消…" if cancelling else "取消识别" if running else
-            "重新识别" if self.output_path else "开始识别"
+            tr("正在取消…") if cancelling else tr("取消识别") if running else
+            tr("重新识别") if self.output_path else tr("开始识别")
         )
         self.convert_button.setEnabled(not cancelling and (running or bool(self.pdf_path)))
         self.open_button.setEnabled(bool(self.output_path) and not running)

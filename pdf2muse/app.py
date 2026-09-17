@@ -44,9 +44,10 @@ def run() -> int:
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setPalette(dark_palette())
-    windows_font = Path(r"C:\Windows\Fonts\msyh.ttc")
-    if windows_font.exists():
-        QFontDatabase.addApplicationFont(str(windows_font))
+    for name in ("msyh.ttc", "malgun.ttf", "YuGothM.ttc"):
+        windows_font = Path(r"C:\Windows\Fonts") / name
+        if windows_font.exists():
+            QFontDatabase.addApplicationFont(str(windows_font))
     app.setFont(QFont("Microsoft YaHei UI", 10))
     icon = resource_path("app-icon.png")
     if icon.exists():

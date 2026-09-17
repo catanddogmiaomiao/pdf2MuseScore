@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
+from .i18n import tr
 
 @dataclass(frozen=True)
 class ConversionResult:
@@ -21,6 +22,9 @@ class ConversionResult:
     skipped_pages: tuple[int, ...] = ()
 
 class ConversionError(RuntimeError):
+    pass
+
+class MemoryConversionError(ConversionError):
     pass
 
 class ConversionCancelled(ConversionError):
@@ -51,7 +55,7 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
     env.pop('PYTHONPATH', None)
     env.pop('PYTHONHOME', None)
     if on_stage:
-        on_stage('正在准备模型和读取 PDF…')
+        on_stage(tr('正在准备模型和读取 PDF…'))
     lines: queue.Queue[str | None] = queue.Queue()
     process = None
     with log_file.open('w', encoding='utf-8') as log:
@@ -64,7 +68,7 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
         emit('执行命令：' + subprocess.list2cmdline(command))
         try:
             if cancel and cancel.is_set():
-                raise ConversionCancelled('已取消识别。')
+                raise ConversionCancelled(tr('已取消识别。'))
             process = subprocess.Popen(command, cwd=run_dir, env=env,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                 encoding='utf-8', errors='replace',
@@ -82,7 +86,7 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
             memory_error = False
             while True:
                 if cancel and cancel.is_set():
-                    raise ConversionCancelled('已取消识别。')
+                    raise ConversionCancelled(tr('已取消识别。'))
                 try:
                     line = lines.get(timeout=.1)
                 except queue.Empty:
@@ -94,25 +98,25 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
                 failed_page |= 'An error occurred while processing' in line
                 if on_stage:
                     if 'Downloading' in line or 'Downloaded' in line:
-                        on_stage('首次使用：正在下载本地模型…')
+                        on_stage(tr('首次使用：正在下载本地模型…'))
                     elif 'Processing' in line or '================================' in line:
-                        on_stage('正在识别页面中的乐谱…')
+                        on_stage(tr('正在识别页面中的乐谱…'))
                     elif 'Finished ' in line:
-                        on_stage('页面识别完成，正在继续处理…')
+                        on_stage(tr('页面识别完成，正在继续处理…'))
             code = process.wait()
             if cancel and cancel.is_set():
-                raise ConversionCancelled('已取消识别。')
+                raise ConversionCancelled(tr('已取消识别。'))
             if code or failed_page:
                 if memory_error:
-                    raise ConversionError(f'识别内存不足，请关闭其他占用内存的程序后重试。日志：{log_file}')
-                raise ConversionError(f'HOMR 未完成整份乐谱的识别，请查看日志。日志：{log_file}')
+                    raise MemoryConversionError(tr('识别内存不足，请关闭其他占用内存的程序后重试。日志：{log}', log=log_file))
+                raise ConversionError(tr('HOMR 未完成整份乐谱的识别，请查看日志。日志：{log}', log=log_file))
             pages = [p for p in run_dir.glob('score_*.png') if re.fullmatch(r'score_[0-9]+\.png', p.name)]
             source = run_dir / ('score_0_merged.musicxml' if len(pages) > 1 else 'score_0.musicxml')
             if not source.is_file():
-                raise ConversionError(f'没有找到完整的 MusicXML 输出。日志：{log_file}')
+                raise ConversionError(tr('没有找到完整的 MusicXML 输出。日志：{log}', log=log_file))
             root = ET.parse(source).getroot()
             if root.tag not in ('score-partwise', 'score-timewise') or not root.findall('.//note'):
-                raise ConversionError(f'输出不包含可用的乐谱内容。日志：{log_file}')
+                raise ConversionError(tr('输出不包含可用的乐谱内容。日志：{log}', log=log_file))
             destination = output_dir / f'{pdf.stem}.musicxml'
             index = 2
             while destination.exists():
@@ -129,7 +133,7 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
             raise
         except (OSError, ET.ParseError) as exc:
             emit(str(exc))
-            raise ConversionError(f'无法完成识别：{exc}；日志：{log_file}') from exc
+            raise ConversionError(tr('无法完成识别：{error}；日志：{log}', error=exc, log=log_file)) from exc
         finally:
             if process is not None:
                 if process.poll() is None:

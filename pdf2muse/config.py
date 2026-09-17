@@ -10,6 +10,15 @@ class AppConfig:
         self._settings = QSettings()
 
     @property
+    def language(self) -> str:
+        value = self._settings.value("ui/language", "zh_CN", str)
+        return value if value in ("zh_CN", "en", "ja", "ko") else "zh_CN"
+
+    @language.setter
+    def language(self, value: str) -> None:
+        self._settings.setValue("ui/language", value)
+
+    @property
     def homr_python(self) -> Path | None:
         value = self._settings.value("tools/homr_python", "", str)
         return Path(value) if value else None
