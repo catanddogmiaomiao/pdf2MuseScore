@@ -1,12 +1,33 @@
 from pathlib import Path
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                             QLineEdit, QListWidget, QListWidgetItem, QComboBox, QMenu,
                             QMessageBox, QFileDialog, QInputDialog)
 from .i18n import tr
+
+
+def score_icon():
+    """Consistent paper glyph; explicit modes prevent Qt tinting selected rows."""
+    image = QPixmap(84, 120)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor('#F1EEE7'))
+    painter.drawRoundedRect(2, 2, 80, 116, 4, 4)
+    painter.setPen(QPen(QColor('#99968F'), 1.5))
+    for top in (23, 45, 67, 89):
+        for offset in (0, 3, 6, 9, 12):
+            painter.drawLine(12, top + offset, 72, top + offset)
+    painter.end()
+    icon = QIcon()
+    for mode in (QIcon.Mode.Normal, QIcon.Mode.Selected, QIcon.Mode.Active, QIcon.Mode.Disabled):
+        icon.addPixmap(image, mode, QIcon.State.Off)
+        icon.addPixmap(image, mode, QIcon.State.On)
+    return icon
 
 
 class LibraryPage(QWidget):
@@ -19,6 +40,7 @@ class LibraryPage(QWidget):
     def __init__(self, store):
         super().__init__()
         self.store, self.current = store, None
+        self.score_icon = score_icon()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         heading = QHBoxLayout()
@@ -106,12 +128,7 @@ class LibraryPage(QWidget):
             item = QListWidgetItem(entry['title'] + '\n' + tr('{pages} 页 · {state} · {date}', pages=entry['pages'], state=state, date=entry['updated'][:16].replace('T', ' ')))
             item.setData(Qt.ItemDataRole.UserRole, entry)
             item.setSizeHint(QSize(200, 88))
-            document = QPdfDocument(self)
-            if document.load(entry['pdf']) == QPdfDocument.Error.None_:
-                image = document.render(0, QSize(84, 120))
-                item.setIcon(QIcon(QPixmap.fromImage(image)))
-            document.close()
-            document.deleteLater()
+            item.setIcon(self.score_icon)
             self.list.addItem(item)
             if entry['id'] == identifier:
                 selected = item
