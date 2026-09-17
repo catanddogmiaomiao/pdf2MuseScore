@@ -627,10 +627,14 @@ class MainWindow(QMainWindow):
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.status_label.setStyleSheet(f"color:{C['danger']};")
-        self.status_label.setText("●  识别失败")
-        self.suspect_summary.setText("请查看日志中的最后一条错误")
+        memory_error = message.startswith("识别内存不足")
+        title = "识别内存不足" if memory_error else "识别失败"
+        self.status_label.setText("●  " + title)
+        self.suspect_summary.setText(
+            "请关闭其他程序后重试" if memory_error else "请查看日志中的最后一条错误"
+        )
         self._refresh_controls()
-        QMessageBox.critical(self, "识别失败", message)
+        QMessageBox.critical(self, title, message)
 
     def _cancel_conversion(self) -> None:
         if self.worker and self.worker.isRunning():

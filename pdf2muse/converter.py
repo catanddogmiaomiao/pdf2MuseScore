@@ -26,6 +26,15 @@ class ConversionError(RuntimeError):
 class ConversionCancelled(ConversionError):
     pass
 
+
+def is_memory_error(line: str) -> bool:
+    # Native ONNX stderr on Windows can contain UTF-16 NULs amid UTF-8 output.
+    text = line.replace('\x00', '').lower()
+    return any(marker in text for marker in (
+        'failed to allocate memory', 'out of memory', 'outofmemory',
+        'std::bad_alloc', 'memoryerror',
+    ))
+
 def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
     on_log: Callable[[str], None] | None = None,
     on_stage: Callable[[str], None] | None = None,
@@ -70,6 +79,7 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
             reader = threading.Thread(target=read, daemon=True)
             reader.start()
             failed_page = False
+            memory_error = False
             while True:
                 if cancel and cancel.is_set():
                     raise ConversionCancelled('已取消识别。')
@@ -80,6 +90,7 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
                 if line is None:
                     break
                 emit(line)
+                memory_error |= is_memory_error(line)
                 failed_page |= 'An error occurred while processing' in line
                 if on_stage:
                     if 'Downloading' in line or 'Downloaded' in line:
@@ -92,6 +103,8 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
             if cancel and cancel.is_set():
                 raise ConversionCancelled('已取消识别。')
             if code or failed_page:
+                if memory_error:
+                    raise ConversionError(f'识别内存不足，请关闭其他占用内存的程序后重试。日志：{log_file}')
                 raise ConversionError(f'HOMR 未完成整份乐谱的识别，请查看日志。日志：{log_file}')
             pages = [p for p in run_dir.glob('score_*.png') if re.fullmatch(r'score_[0-9]+\.png', p.name)]
             source = run_dir / ('score_0_merged.musicxml' if len(pages) > 1 else 'score_0.musicxml')

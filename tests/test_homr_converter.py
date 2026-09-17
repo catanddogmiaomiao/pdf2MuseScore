@@ -43,6 +43,15 @@ class ConverterTests(unittest.TestCase):
     def test_teaser_image_is_not_an_extra_page(self):
         self.run_fake(f"from pathlib import Path\nPath('score_0.png').touch()\nPath('score_0_teaser.png').touch()\nPath('score_0.musicxml').write_text({XML!r})")
 
+    def test_onnx_memory_failure_has_specific_message(self):
+        with self.assertRaisesRegex(ConversionError, '识别内存不足'):
+            self.run_fake("print('An error occurred while processing score_0.png: Failed to allocate memory for requested buffer of size 2621440')")
+
+    def test_utf16_native_memory_log(self):
+        from pdf2muse.converter import is_memory_error
+        self.assertTrue(is_memory_error('\x00'.join('Failed to allocate memory')))
+        self.assertFalse(is_memory_error('No noteheads found'))
+
     def test_cancel_silent_process(self):
         cancel = threading.Event()
         timer = threading.Timer(.5, cancel.set)
