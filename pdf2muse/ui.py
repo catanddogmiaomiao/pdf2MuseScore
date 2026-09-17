@@ -9,7 +9,7 @@ from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (
     QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
-    QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton,
+    QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QLayout,
     QStackedWidget, QVBoxLayout, QWidget,
 )
 
@@ -372,8 +372,9 @@ class MainWindow(QMainWindow):
         frame = QFrame()
         frame.setObjectName("card")
         layout = QVBoxLayout(frame)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         layout.setContentsMargins(22, 20, 22, 20)
-        layout.setSpacing(14)
+        layout.setSpacing(10)
         return frame, layout
 
     def _import_card(self) -> QFrame:
@@ -445,17 +446,8 @@ class MainWindow(QMainWindow):
         layout.addLayout(path_row)
         self.convert_button = QPushButton("开始识别")
         self.convert_button.setObjectName("primary")
-        self.convert_button.clicked.connect(self._start_conversion)
+        self.convert_button.clicked.connect(self._toggle_conversion)
         layout.addWidget(self.convert_button)
-        self.cancel_button = QPushButton("取消识别")
-        self.cancel_button.clicked.connect(self._cancel_conversion)
-        self.cancel_button.hide()
-        layout.addWidget(self.cancel_button)
-        tip = QLabel("转换后可在 MuseScore 中编辑和播放")
-        tip.setMinimumHeight(24)
-        tip.setObjectName("muted")
-        tip.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(tip)
         column.addWidget(settings)
 
         status, layout = self._card()
@@ -480,7 +472,6 @@ class MainWindow(QMainWindow):
         suspect_row.addWidget(self.suspect_summary)
         layout.addLayout(suspect_row)
         self.result_label = QLabel("")
-        self.result_label.setMinimumHeight(32)
         self.result_label.setWordWrap(True)
         self.result_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self.result_label)
@@ -608,6 +599,12 @@ class MainWindow(QMainWindow):
         self.worker.start()
         self._refresh_controls()
 
+    def _toggle_conversion(self) -> None:
+        if self.worker and self.worker.isRunning():
+            self._cancel_conversion()
+        else:
+            self._start_conversion()
+
     def _receive_log(self, line: str) -> None:
         self._log_lines.append(line)
         self._log_lines = self._log_lines[-1000:]
@@ -638,7 +635,7 @@ class MainWindow(QMainWindow):
     def _cancel_conversion(self) -> None:
         if self.worker and self.worker.isRunning():
             self.worker.cancel_event.set()
-            self.cancel_button.setEnabled(False)
+            self._refresh_controls()
             self.status_label.setText("●  正在取消…")
 
     def _conversion_cancelled(self) -> None:
@@ -691,11 +688,14 @@ class MainWindow(QMainWindow):
 
     def _refresh_controls(self) -> None:
         running = self.worker is not None and self.worker.isRunning()
-        self.convert_button.setEnabled(bool(self.pdf_path) and not running)
+        cancelling = running and self.worker.cancel_event.is_set()
+        self.convert_button.setText(
+            "正在取消…" if cancelling else "取消识别" if running else
+            "重新识别" if self.output_path else "开始识别"
+        )
+        self.convert_button.setEnabled(not cancelling and (running or bool(self.pdf_path)))
         self.open_button.setEnabled(bool(self.output_path) and not running)
         self.folder_button.setEnabled(bool(self.output_path) and not running)
-        self.cancel_button.setVisible(running)
-        self.cancel_button.setEnabled(running)
         self.import_stack.setEnabled(not running)
         self.file_panel.setEnabled(not running)
         self.output_edit.setEnabled(not running)
