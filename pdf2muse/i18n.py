@@ -179,6 +179,7 @@ CATALOG = {'拖放 PDF 乐谱': {'en': 'Drop a PDF score here', 'ja': 'PDF楽譜
                              'ko': '인식을 완료할 수 없습니다: {error}. 로그: {log}'}}
 
 CATALOG.update({
+ '已内置本地识别引擎和模型，无需安装 Python。': {'en':'Local engine and models included. Python is not required.','ja':'認識エンジンとモデルを内蔵しています。Pythonのインストールは不要です。','ko':'로컬 인식 엔진과 모델이 포함되어 있습니다. Python을 설치할 필요가 없습니다.'},
  '转换': {'en':'Convert','ja':'変換','ko':'변환'},
  '曲谱库': {'en':'Score library','ja':'楽譜ライブラリ','ko':'악보 보관함'},
  '＋ 导入曲谱': {'en':'＋ Import score','ja':'＋ 楽譜を追加','ko':'＋ 악보 가져오기'},

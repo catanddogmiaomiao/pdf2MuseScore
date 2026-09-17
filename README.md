@@ -9,6 +9,16 @@ Windows 本地 PDF 乐谱转换工具，使用 PyQt6 界面。
 
 ## 安装与运行
 
+### 使用完整便携包
+
+解压 `PDF2Muse-Windows-x64-portable.zip`，双击文件夹中的 `PDF2Muse.exe`。
+无需安装 Python、Java 或运行安装脚本；内置 CPU HOMR 引擎、三个识别模型及运行库，
+识别时不下载模型。必须保留整个目录（包括 `_internal` 和 `engine`），不能只发送 EXE。
+面向 Windows x64，当前在 Windows 10 验证。MuseScore 另行安装；没有它也可导出 MusicXML。
+曲谱库和设置保存在用户目录，不会随复制软件自动转移。
+
+### 从源码运行
+
 准备 Python 3.11 或 3.12、MuseScore Studio。
 
 ```powershell
@@ -62,12 +72,16 @@ HOMR 侧重点是高音/低音谱号的音高与节奏，复杂记号的识别�
 
 ```powershell
 python -m pip install -r requirements-build.txt
+# 在 HOMR 独立环境中另外安装构建工具：
+python -m pip --python .homr-runtime\Scripts\python.exe install -r requirements-engine-build.txt
 .\build.ps1
 ```
 
-分发整个 `dist\PDF2Muse` 目录。PyInstaller 仅打包 GUI 与调用桥接脚本，
-不打包 HOMR、ONNX、模型或 MuseScore。首次使用运行 `_internal\setup-homr.ps1`。
-该脚本默认创建上述用户级环境，打包后无需开发机器的绝对路径。
+`build.ps1` 默认构建完整便携包，先构建 GUI，再用 HOMR 环境构建独立引擎，
+包含模型并执行模型加载自检，最后生成 ZIP。可用 `-RuntimePython` 指定构建环境，
+或 `-GuiOnly` 只构建用于开发的 GUI。构建环境需要预先按“从源码运行”步骤安装并初始化 HOMR。
+仅开发时需要 Python；接收便携包的用户无需安装。便携版优先使用内置引擎，忽略旧 Python 路径设置。
+第三方许可说明见 `THIRD-PARTY-NOTICES.md`；分发包包含相关源代码和许可文本。
 
 ## 测试
 

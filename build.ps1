@@ -1,9 +1,14 @@
 [CmdletBinding()]
-param()
+param([switch]$GuiOnly, [string]$RuntimePython = "")
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path -LiteralPath $PSScriptRoot).Path
 Set-Location -LiteralPath $projectRoot
+
+if (-not $GuiOnly) {
+    & "$projectRoot\build-portable.ps1" -RuntimePython $RuntimePython
+    exit $LASTEXITCODE
+}
 
 Write-Host 'Building PDF2Muse for Windows...'
 python -c "import PyInstaller, PyQt6" 2>$null

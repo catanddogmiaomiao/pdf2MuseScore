@@ -12,6 +12,24 @@ XML = '<score-partwise><part id="P1"><measure number="1"><note><rest/><duration>
 
 
 class ConverterTests(unittest.TestCase):
+    def test_frozen_engine_command_and_environment_are_independent(self):
+        import os
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            pdf, script = root / 'input.pdf', root / 'fake.py'
+            pdf.write_bytes(b'pdf')
+            script.write_text(f"from pathlib import Path\nPath('score_0.png').touch()\nPath('score_0.musicxml').write_text({XML!r})", encoding='utf-8')
+            popen = subprocess.Popen
+            def start(command, **kwargs):
+                self.assertEqual(command, [str((root / 'engine' / 'HOMR.exe').resolve())])
+                self.assertNotIn('PYTHONPATH', kwargs['env'])
+                self.assertNotIn('PYTHONHOME', kwargs['env'])
+                self.assertNotIn('_MEIPASS2', kwargs['env'])
+                self.assertNotIn('_PYI_APPLICATION_HOME_DIR', kwargs['env'])
+                return popen([sys.executable, str(script)], **kwargs)
+            with patch.dict(os.environ, {'_MEIPASS2':'old-gui', '_PYI_APPLICATION_HOME_DIR':'old-gui'}), patch('pdf2muse.converter.subprocess.Popen', start):
+                convert_with_homr(pdf, root / 'output', root / 'engine' / 'HOMR.exe')
+
     def run_fake(self, code, cancel=None):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)

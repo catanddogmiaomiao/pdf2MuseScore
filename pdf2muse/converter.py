@@ -49,11 +49,18 @@ def convert_with_homr(pdf: Path, output_dir: Path, python: Path,
     log_file = run_dir / 'homr.log'
     started = time.perf_counter()
     shutil.copy2(pdf, run_dir / 'score.pdf')
-    command = [str(python.resolve()), '-u', str(Path(__file__).with_name('homr_runner.py').resolve())]
+    bundled = python.name.lower() == 'homr.exe'
+    command = [str(python.resolve())] if bundled else [str(python.resolve()), '-u', str(Path(__file__).with_name('homr_runner.py').resolve())]
     env = os.environ.copy()
     env.update(PYTHONUTF8='1', PYTHONUNBUFFERED='1')
     env.pop('PYTHONPATH', None)
     env.pop('PYTHONHOME', None)
+    # The engine is a separate frozen application, with its own bundled libraries.
+    env.pop('_MEIPASS2', None)
+    for name in list(env):
+        if name.startswith('_PYI_'):
+            env.pop(name)
+    env['PYINSTALLER_RESET_ENVIRONMENT'] = '1'
     if on_stage:
         on_stage(tr('正在准备模型和读取 PDF…'))
     lines: queue.Queue[str | None] = queue.Queue()

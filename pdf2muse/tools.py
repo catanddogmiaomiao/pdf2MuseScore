@@ -14,7 +14,7 @@ def find_homr_python(configured: Path | None = None) -> Path | None:
     import sys
     base = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent.parent
     local = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'PDF2Muse'
-    for candidate in (configured, base / '.homr-runtime' / 'Scripts' / 'python.exe',
+    for candidate in (base / 'engine' / 'HOMR.exe', configured, base / '.homr-runtime' / 'Scripts' / 'python.exe',
                       local / 'homr-runtime' / 'Scripts' / 'python.exe'):
         if found := _valid(candidate):
             return found

@@ -276,7 +276,9 @@ class SettingsDialog(QDialog):
         heading = QLabel(tr("本地工具路径"))
         heading.setObjectName("section")
         layout.addWidget(heading)
-        note = QLabel(tr("首次使用请运行 setup-homr.ps1，下载依赖和模型。"))
+        runtime = find_homr_python()
+        bundled = runtime and runtime.name.lower() == 'homr.exe'
+        note = QLabel(tr('已内置本地识别引擎和模型，无需安装 Python。') if bundled else tr("首次使用请运行 setup-homr.ps1，下载依赖和模型。"))
         note.setObjectName("muted")
         note.setWordWrap(True)
         layout.addWidget(note)
@@ -287,7 +289,7 @@ class SettingsDialog(QDialog):
         self.language_combo.setCurrentIndex(self.language_combo.findData(config.language))
         layout.addWidget(self.language_combo)
         layout.addSpacing(8)
-        self.homr_edit = self._path_row(layout, tr("HOMR 独立环境 Python"), config.homr_python, "python.exe")
+        self.homr_edit = None if bundled else self._path_row(layout, tr("HOMR 独立环境 Python"), config.homr_python, "python.exe")
         self.musescore_edit = self._path_row(layout, "MuseScore Studio", config.musescore_path, "MuseScore4.exe")
         buttons = QHBoxLayout()
         buttons.addStretch()
@@ -320,7 +322,8 @@ class SettingsDialog(QDialog):
             edit.setText(path)
 
     def _save(self) -> None:
-        self.config.homr_python = Path(self.homr_edit.text()) if self.homr_edit.text() else None
+        if self.homr_edit is not None:
+            self.config.homr_python = Path(self.homr_edit.text()) if self.homr_edit.text() else None
         self.config.musescore_path = Path(self.musescore_edit.text()) if self.musescore_edit.text() else None
         self.config.language = self.language_combo.currentData()
         set_language(self.config.language)
