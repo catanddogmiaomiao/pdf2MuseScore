@@ -1,6 +1,7 @@
 import os
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 import tempfile
+from threading import Event
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -58,8 +59,67 @@ class LibraryUiTests(unittest.TestCase):
                 self.assertEqual(window.library_page.versions.currentData(), saved['versions'][0]['path'])
             set_language('zh_CN')
             window.pdf_preview.clear()
-            window.library_page.document.close()
+            window.library_page.cover_worker.stop()
+            self.assertTrue(window.library_page.cover_worker.wait(5000))
             window.close()
             window.deleteLater()
             self.app.processEvents()
             QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+    def test_slow_cover_keeps_ui_responsive_and_discards_stale_result(self):
+        from PyQt6.QtCore import QTimer
+        from PyQt6.QtGui import QImage
+        from PyQt6.QtTest import QTest
+        from pdf2muse.library_ui import LibraryPage
+        entered, release = Event(), Event()
+
+        class SlowDocument:
+            class Error:
+                None_ = 0
+            def __init__(self, parent): pass
+            def load(self, path):
+                entered.set()
+                release.wait(5)
+                return 0
+            def pageCount(self): return 1
+            def pagePointSize(self, page):
+                from PyQt6.QtCore import QSizeF
+                return QSizeF(200, 300)
+            def render(self, page, size):
+                image = QImage(size, QImage.Format.Format_RGB32)
+                image.fill(0xffffff)
+                return image
+            def close(self): pass
+
+        entries = [dict(id=str(i), title=str(i), pdf=str(i)+'.pdf', pages=19,
+                        versions=[], updated='2026-09-18') for i in range(3)]
+        with patch('pdf2muse.library_ui.QPdfDocument', SlowDocument):
+            page = LibraryPage(SimpleNamespace(entries=lambda: entries))
+            heartbeat = []
+            timer = QTimer()
+            timer.timeout.connect(lambda: heartbeat.append(1))
+            timer.start(10)
+            try:
+                QTest.qWait(250)
+                self.assertTrue(entered.is_set())
+                for index in (1, 2, 1, 2):
+                    page.list.setCurrentRow(index)
+                QTest.qWait(250)
+                self.assertGreater(len(heartbeat), 10)
+                self.assertEqual(page.current['id'], '2')
+                self.assertIsNone(page.cover.image)
+                release.set()
+                for _ in range(40):
+                    QTest.qWait(50)
+                    if page.cover.image is not None:
+                        break
+                self.assertIsNotNone(page.cover.image)
+                self.assertEqual(page.current['id'], '2')
+                self.assertLessEqual(len(page.cover_cache), 2)
+            finally:
+                release.set()
+                timer.stop()
+                page.cover_worker.stop()
+                self.assertTrue(page.cover_worker.wait(5000))
+                page.deleteLater()
+                self.app.processEvents()

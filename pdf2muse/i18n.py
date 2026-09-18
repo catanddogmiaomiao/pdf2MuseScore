@@ -6,7 +6,8 @@ LANGUAGES = {'zh_CN': '简体中文', 'en': 'English', 'ja': '日本語', 'ko': 
 _language = 'zh_CN'
 _seen = {}
 _qt_translator = None
-CATALOG = {'拖放 PDF 乐谱': {'en': 'Drop a PDF score here', 'ja': 'PDF楽譜をここにドロップ', 'ko': 'PDF 악보를 여기에 놓으세요'},
+CATALOG = {'正在加载预览…': {'en': 'Loading preview…', 'ja': 'プレビューを読み込み中…', 'ko': '미리보기 로딩 중…'},
+ '拖放 PDF 乐谱': {'en': 'Drop a PDF score here', 'ja': 'PDF楽譜をここにドロップ', 'ko': 'PDF 악보를 여기에 놓으세요'},
  '或从电脑中选择文件': {'en': 'Or choose a file', 'ja': 'またはファイルを選択', 'ko': '또는 파일을 선택하세요'},
  '＋    选择 PDF': {'en': '＋    Choose PDF', 'ja': '＋    PDFを選択', 'ko': '＋    PDF 선택'},
  '上一页': {'en': 'Previous', 'ja': '前のページ', 'ko': '이전 페이지'},

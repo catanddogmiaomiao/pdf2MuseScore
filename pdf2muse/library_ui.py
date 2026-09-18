@@ -1,8 +1,9 @@
 from pathlib import Path
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from collections import OrderedDict
+from threading import Condition
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QThread, QTimer, QSignalBlocker
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PyQt6.QtPdf import QPdfDocument
-from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                             QLineEdit, QListWidget, QListWidgetItem, QComboBox, QMenu,
                             QMessageBox, QFileDialog, QInputDialog)
@@ -28,6 +29,78 @@ def score_icon():
         icon.addPixmap(image, mode, QIcon.State.Off)
         icon.addPixmap(image, mode, QIcon.State.On)
     return icon
+
+
+class CoverWorker(QThread):
+    """One serialized renderer; replace queued requests instead of accumulating them."""
+    ready = pyqtSignal(int, str, object)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.condition = Condition()
+        self.pending = None
+        self.stopping = False
+
+    def request(self, generation, path):
+        with self.condition:
+            self.pending = (generation, path)
+            self.condition.notify()
+
+    def stop(self):
+        with self.condition:
+            self.stopping = True
+            self.pending = None
+            self.condition.notify()
+
+    def run(self):
+        while True:
+            with self.condition:
+                self.condition.wait_for(lambda: self.stopping or self.pending is not None)
+                if self.stopping:
+                    return
+                generation, path = self.pending
+                self.pending = None
+            image = None
+            # Create, render and destroy the document on this thread only.
+            document = QPdfDocument(None)
+            try:
+                if document.load(path) == QPdfDocument.Error.None_ and document.pageCount():
+                    size = document.pagePointSize(0)
+                    if size.width() > 0 and size.height() > 0:
+                        scale = min(720 / size.width(), 1000 / size.height())
+                        image = document.render(0, QSize(max(1, int(size.width()*scale)),
+                                                       max(1, int(size.height()*scale))))
+                        if image.isNull():
+                            image = None
+            except Exception:
+                image = None
+            finally:
+                document.close()
+                del document
+            self.ready.emit(generation, path, image)
+
+
+class CoverLabel(QLabel):
+    def __init__(self):
+        super().__init__()
+        self.image = None
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setMinimumSize(180, 220)
+        self.setStyleSheet('background:#111113;border-radius:12px;')
+
+    def show_image(self, image):
+        self.image = image
+        self._fit()
+
+    def _fit(self):
+        if self.image is not None:
+            self.setPixmap(QPixmap.fromImage(self.image).scaled(
+                self.size() - QSize(24, 24), Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._fit()
 
 
 class LibraryPage(QWidget):
@@ -79,12 +152,17 @@ class LibraryPage(QWidget):
         self.detail.setMaximumWidth(360)
         right = QVBoxLayout(self.detail)
         right.setContentsMargins(18, 0, 0, 0)
-        self.document = QPdfDocument(self)
-        view = QPdfView(self)
-        view.setDocument(self.document)
-        view.setPageMode(QPdfView.PageMode.SinglePage)
-        view.setZoomMode(QPdfView.ZoomMode.FitInView)
-        right.addWidget(view, 1)
+        self.cover = CoverLabel()
+        right.addWidget(self.cover, 1)
+        self.cover_cache = OrderedDict()
+        self.cover_generation = 0
+        self.cover_worker = CoverWorker(self)
+        self.cover_worker.ready.connect(self._cover_ready)
+        self.cover_worker.start()
+        self.cover_timer = QTimer(self)
+        self.cover_timer.setSingleShot(True)
+        self.cover_timer.setInterval(150)
+        self.cover_timer.timeout.connect(self._load_cover)
         self.title = QLabel()
         self.title.setWordWrap(True)
         self.title.setProperty('literalText', True)
@@ -119,6 +197,7 @@ class LibraryPage(QWidget):
         except Exception as exc:
             QMessageBox.warning(self, tr('无法读取曲谱库'), str(exc))
             return
+        blocker = QSignalBlocker(self.list)
         self.list.clear()
         self.count.setText(tr('{count} 份曲谱', count=len(entries)))
         self.empty.setVisible(not entries)
@@ -133,6 +212,8 @@ class LibraryPage(QWidget):
             if entry['id'] == identifier:
                 selected = item
         self.list.setCurrentItem(selected or self.list.item(0))
+        del blocker
+        self._select(self.list.currentItem())
         self.detail.setVisible(bool(entries))
         self._filter(self.search.text())
 
@@ -143,15 +224,19 @@ class LibraryPage(QWidget):
 
     def _select(self, item, previous=None):
         self.current = item.data(Qt.ItemDataRole.UserRole) if item else None
-        self.document.close()
+        self.cover_generation += 1
+        self.cover_timer.stop()
         if not self.current:
             self.detail.setVisible(False)
             return
         self.detail.setVisible(True)
         entry = self.current
         self.title.setText(entry['title'])
-        error = self.document.load(entry['pdf'])
-        self.meta.setText(tr('{pages} 页', pages=entry['pages']) if error == QPdfDocument.Error.None_ else tr('原谱暂时无法访问'))
+        self.meta.setText(tr('{pages} 页', pages=entry['pages']))
+        self.cover.show_image(None)
+        self.cover.clear()
+        self.cover.setText(tr('正在加载预览…'))
+        self.cover_timer.start()
         self.versions.clear()
         if entry.get('edited'):
             self.versions.addItem(tr('我的修改 · MuseScore'), entry['edited'])
@@ -160,6 +245,35 @@ class LibraryPage(QWidget):
         self.version_label.setVisible(bool(self.versions.count()))
         self.versions.setVisible(bool(self.versions.count()))
         self.open.setText(tr('在 MuseScore 中打开') if self.versions.count() else tr('开始识别'))
+
+    def _load_cover(self):
+        if not self.current:
+            return
+        path = self.current['pdf']
+        if path in self.cover_cache:
+            image = self.cover_cache[path]
+            self.cover_cache.move_to_end(path)
+            self.cover.show_image(image)
+        else:
+            self.cover_worker.request(self.cover_generation, path)
+
+    def _cover_ready(self, generation, path, image):
+        if image is not None:
+            self.cover_cache[path] = image
+            self.cover_cache.move_to_end(path)
+            while len(self.cover_cache) > 12:
+                self.cover_cache.popitem(last=False)
+        if generation != self.cover_generation or not self.current or path != self.current['pdf']:
+            return
+        if image is None:
+            self.cover.setText(tr('原谱暂时无法访问'))
+        else:
+            self.cover.show_image(image)
+
+    def shutdown(self):
+        self.cover_timer.stop()
+        self.cover_worker.stop()
+        return self.cover_worker.wait(100)
 
     def _open(self):
         if self.current:

@@ -837,4 +837,8 @@ class MainWindow(QMainWindow):
             if self.worker.isRunning():
                 event.ignore()
                 return
+        if not self.library_page.shutdown():
+            event.ignore()
+            QTimer.singleShot(150, self.close)
+            return
         super().closeEvent(event)
