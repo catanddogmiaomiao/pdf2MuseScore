@@ -2,7 +2,7 @@ from pathlib import Path
 from collections import OrderedDict
 from threading import Condition
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QThread, QTimer, QSignalBlocker
-from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PyQt6.QtGui import QColor, QIcon, QImage, QPainter, QPen, QPixmap
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                             QLineEdit, QListWidget, QListWidgetItem, QComboBox, QMenu,
@@ -46,6 +46,10 @@ class CoverWorker(QThread):
             self.pending = (generation, path)
             self.condition.notify()
 
+    def discard_pending(self):
+        with self.condition:
+            self.pending = None
+
     def stop(self):
         with self.condition:
             self.stopping = True
@@ -72,6 +76,15 @@ class CoverWorker(QThread):
                                                        max(1, int(size.height()*scale))))
                         if image.isNull():
                             image = None
+                        else:
+                            # Vector PDFs often have transparent paper. Paint it explicitly;
+                            # otherwise black notes disappear against the dark application.
+                            paper = QImage(image.size(), QImage.Format.Format_RGB32)
+                            paper.fill(Qt.GlobalColor.white)
+                            painter = QPainter(paper)
+                            painter.drawImage(0, 0, image)
+                            painter.end()
+                            image = paper
             except Exception:
                 image = None
             finally:
@@ -226,6 +239,7 @@ class LibraryPage(QWidget):
         self.current = item.data(Qt.ItemDataRole.UserRole) if item else None
         self.cover_generation += 1
         self.cover_timer.stop()
+        self.cover_worker.discard_pending()
         if not self.current:
             self.detail.setVisible(False)
             return

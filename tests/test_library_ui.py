@@ -123,3 +123,31 @@ class LibraryUiTests(unittest.TestCase):
                 self.assertTrue(page.cover_worker.wait(5000))
                 page.deleteLater()
                 self.app.processEvents()
+
+    def test_vector_pdf_cover_has_opaque_white_paper(self):
+        from PyQt6.QtTest import QTest
+        from pdf2muse.library_ui import LibraryPage
+        with tempfile.TemporaryDirectory() as directory:
+            pdf = Path(directory) / 'vector.pdf'
+            writer = QPdfWriter(str(pdf))
+            painter = QPainter(writer)
+            painter.drawText(1000, 1000, 'Black notes on transparent PDF paper')
+            painter.end()
+            del writer
+            entry = dict(id='vector', title='vector', pdf=str(pdf), pages=1,
+                         versions=[], updated='2026-09-18')
+            page = LibraryPage(SimpleNamespace(entries=lambda: [entry]))
+            try:
+                for _ in range(100):
+                    QTest.qWait(30)
+                    if page.cover.image is not None:
+                        break
+                self.assertIsNotNone(page.cover.image)
+                color = page.cover.image.pixelColor(0, 0)
+                self.assertEqual((color.red(), color.green(), color.blue(), color.alpha()),
+                                 (255, 255, 255, 255))
+            finally:
+                page.cover_worker.stop()
+                self.assertTrue(page.cover_worker.wait(5000))
+                page.deleteLater()
+                self.app.processEvents()
