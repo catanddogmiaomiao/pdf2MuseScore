@@ -1,98 +1,75 @@
-# PDF2Muse — HOMR 实验版
+# PDF2Muse 0.3.0 for Windows
 
-Windows 本地 PDF 乐谱转换工具，使用 PyQt6 界面。
+PDF 五线谱 → 本地 HOMR → MusicXML → 可选的 MuseScore Studio 编辑。
 
-**PDF → 本地 HOMR → 原始 MusicXML → MuseScore Studio**
+官网：https://pdf2muse.top 。本分支基于官网此前使用的 `feature/homr`。
+Windows 10 1809+/11 x64。识别环境、CPU 模型、Python 与 Qt 随安装包提供。
+MuseScore Studio 需另行安装，不是识别所必需。转换结果应逐项对照原谱检查。
 
-免费、不上传乐谱。HOMR 是唯一识别后端，不依赖 Audiveris 或 Java。
-识别结果不自动纠错；打开 MuseScore 试听、编辑。
+## 安装与账号
 
-## 安装与运行
+运行 `PDF2Muse-0.3.0-Windows-x64-Setup.exe`，按当前 Windows 用户安装，无需管理员权限。
+通过“账号 / Account”注册，试用从注册时起连续计算 30 天，不会自动扣款。
+有效授权码可永久激活；在线购买价格为 US$9.90，一次性付款，无自动续费。
+适用税费与最终金额以 Creem 托管收银台为准，付款方式由 Creem 实际提供。
+账号使用用户名/密码登录；注册需要邮箱验证码，另可使用仅显示一次的恢复码找回。
+注册与重置密码邮件采用 Resend，与 Book2AudioGo 的方式一致。发信域名与密钥尚需配置；客服邮箱按要求保留待填。
+注册、登录、激活与授权刷新需要联网，签名离线授权最长 7 天；识别和乐谱保存在本机。
+永久购买不按月或年收费，但仍须至少每7天联网刷新授权。
 
-### 使用完整便携包
+当前运营主体、地区和品牌客服邮箱尚待填写，Creem 付款入口保持关闭。
+不能将本次技术部署或法律文件草案称为已通过 Creem 审核或正式收款就绪。
+账号服务源码与部署配置位于独立网站仓库的 `service/`。
 
-解压 `PDF2Muse-Windows-x64-portable.zip`，双击文件夹中的 `PDF2Muse.exe`。
-无需安装 Python、Java 或运行安装脚本；内置 CPU HOMR 引擎、三个识别模型及运行库，
-识别时不下载模型。必须保留整个目录（包括 `_internal` 和 `engine`），不能只发送 EXE。
-面向 Windows x64，当前在 Windows 10 验证。MuseScore 另行安装；没有它也可导出 MusicXML。
-曲谱库和设置保存在用户目录，不会随复制软件自动转移。
+## 法律文件与开源
 
-### 从源码运行
+隐私声明、服务与销售条款、EULA、退款政策、联系信息和第三方声明：
+https://pdf2muse.top/legal/ 。安装后也可通过“法律 / Legal”离线查看。
+购买后14天内可申请全额退款，适用消费者法定权利不受影响。
 
-准备 Python 3.11 或 3.12、MuseScore Studio。
+PDF2Muse 代码采用 GPL-3.0-only，见 LICENSE；第三方组件保留各自许可证。
+HOMR 代码与模型按上游 AGPLv3 提供，并通过独立进程调用。
+GPL 权利不受官方账号或付费安排额外限制，用户可依法修改和再分发代码。
+程序不内嵌整个源码目录；下载页并列提供对应版本的源码压缩包与版本化仓库链接。
+完整对应源码获取无需付费。不要只提供会变化的默认分支。
 
-```powershell
-python -m pip install -r requirements.txt
-powershell -ExecutionPolicy Bypass -File .\setup-homr.ps1
-python main.py
-```
+HOMR 上游说明训练数据权利可能不同于代码/权重许可证，商业模型权利仍需核实：
+https://github.com/liebharc/homr/blob/main/LICENSE_FAQ.md 。详见 THIRD-PARTY-NOTICES.md。
 
-首次安装需要网络下载 HOMR、依赖和模型。默认独立环境位于
-`%LOCALAPPDATA%\PDF2Muse\homr-runtime`，程序自动查找。
-开发环境也支持项目下 `.homr-runtime`；设置中可手动选择独立环境的 `python.exe`。
-不要把 HOMR 安装到 GUI 的 Python 环境中。
+## 从源码构建
 
-导入 PDF 后显示分页预览，选择保存位置并开始识别。阶段状态来自实际处理日志，
-不显示虚构百分比。可取消识别；完成后可打开输出目录或在 MuseScore 中打开。
-
-在“设置 → 语言”中选择简体中文、English、日本語或한국어，点击保存后立即生效，
-下次启动沿用该选择。切换时保留 PDF 页码、文件路径及当前任务。
-按钮、状态与错误提示均支持这四种语言；HOMR 原始日志保留原文。
-
-纯白页会被跳过，并显示页码；其他识别失败不会静默跳过。
-没有完整合并结果时不会把部分页标记为成功。
-输入先复制到 `.pdf2muse/<任务编号>`，所有中间图片和日志留在该任务目录。
-原文件不被覆盖，重复转换输出自动编号。
-
-## 曲谱库
-
-顶部“曲谱库”可搜索、预览、重命名和打开已导入的乐谱。导入时将 PDF 复制到
-`%LOCALAPPDATA%\PDF2Muse\library`，按文件内容去重；原文件移动或存储卡断开后仍可查看副本。
-每次成功识别都在库中保存独立的 MusicXML 和日志版本，不覆盖旧结果。
-“更多 → 关联 MuseScore 文件”可选择自己的 `.mscz` / `.mscx`，此后默认打开该修改版；
-也可在版本列表选择原始识别结果。关联文件保留原位置，程序不监视或猜测 MuseScore 的保存行为。
-双击列表或“查看原谱”恢复转换页的 PDF 和最近结果。“重新识别”使用库中的 PDF。
-“从曲谱库移除”只移除索引，保留库中的 PDF 和结果文件。
-不会自动导入升级前的历史输出；需要重新导入对应 PDF。
-
-## 固定后端
-
-采用官方源码提交 `5e51b434b3149286dae1448603527923b62ef9f2`，安装元数据标记
-`0.7.0+5e51b434`。PyPI 0.7.0 与当前官方接口不同，不直接使用该发行包。
-`requirements-homr.txt` 固定源码；间接依赖由安装器解析，并记录在运行环境
-`installed-versions.txt`。模型由 HOMR 初始化下载，保存在独立环境中。
-
-当前采用 CPU ONNX 推理，关闭标题 OCR 以减少耗时；不生成自己的内部音符格式，
-不重新生成 MusicXML，也不添加审谱或八度修复。
-
-HOMR 侧重点是高音/低音谱号的音高与节奏，复杂记号的识别仍有局限。
-成功导出文件不代表准确识别全部音符。测试记录见 [HOMR 验证](docs/homr-validation.md)。
-
-## 打包
+GUI 以 Python 3.12.2 构建，固定依赖见 requirements-gui-lock.txt。
 
 ```powershell
-python -m pip install -r requirements-build.txt
-# 在 HOMR 独立环境中另外安装构建工具：
-python -m pip --python .homr-runtime\Scripts\python.exe install -r requirements-engine-build.txt
-.\build.ps1
+python -m pip install -r requirements-gui-lock.txt
+.\setup-homr.ps1 -Runtime .\.homr-runtime
+.\.homr-runtime\Scripts\python.exe -m pip install -r requirements-engine-build.txt
+.\build-portable.ps1 -RuntimePython .\.homr-runtime\Scripts\python.exe
+.\packaging\build-installer.ps1 -SkipGuiBuild -InnoCompiler C:\Tools\InnoSetup6\ISCC.exe
 ```
 
-`build.ps1` 默认构建完整便携包，先构建 GUI，再用 HOMR 环境构建独立引擎，
-包含模型并执行模型加载自检，最后生成 ZIP。可用 `-RuntimePython` 指定构建环境，
-或 `-GuiOnly` 只构建用于开发的 GUI。构建环境需要预先按“从源码运行”步骤安装并初始化 HOMR。
-仅开发时需要 Python；接收便携包的用户无需安装。便携版优先使用内置引擎，忽略旧 Python 路径设置。
-第三方许可说明见 `THIRD-PARTY-NOTICES.md`；分发包包含相关源代码和许可文本。
+本次安装程序使用许可明确允许商业用途的 Inno Setup 6.2.2；7.x 的商业授权要求不能忽略。
+`packaging/build-installer.ps1 -EngineDir <冻结HOMR目录>` 也可复用已经验证的固定引擎，
+始终重新检查模型哈希与三个 ONNX CPU 会话。GUI 改动不会重新训练或修改模型。
+PyInstaller 在 spec 中收集 Qt 和依赖许可证；发布还应保留 Python 和引擎依赖通知。
 
-## 测试
+源码压缩包：
+
+```powershell
+python packaging/make_source.py --homr-source <固定HOMR完整源码ZIP> --output dist/PDF2Muse-0.3.0-corresponding-source.zip
+```
+
+这会收集工作树中未忽略的应用源码、构建脚本、测试、许可证和完整固定 HOMR 上游源码。
+用户乐谱、运行凭据、密钥、构建产物和私有账号数据不得提交或打包。
+
+## 验证
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-测试完整合并输出、中文路径、失败页退出码为 0、部分结果拒绝导出及静默进程取消。
-
-## 开源组件
-
-[HOMR](https://github.com/liebharc/homr) 使用 AGPL-3.0；
-[MuseScore Studio](https://github.com/musescore/MuseScore) 使用其自身许可证。
-本仓库不提交模型、用户乐谱或识别输出。早期 `design` 文档仅作历史记录。
+安装后应在隔离 PATH、无系统 Python/Java 依赖的条件下测试真实 PDF → MusicXML，
+并测试登录、到期、授权码、退款回调及离线授权签名。
+`--verify-portable 输入.pdf 输出目录` 使用实际冻结 GUI → 引擎转换，仍要求有效账号授权。
+本地曲谱库位于 `%LOCALAPPDATA%/PDF2Muse/library`；账号凭据受当前 Windows 用户 DPAPI 保护。
+卸载保留曲谱、输出及账号设置，不远程删除用户文件。

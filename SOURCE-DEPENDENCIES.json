@@ -1,0 +1,191 @@
+{
+  "application": "PDF2Muse",
+  "version": "0.3.0",
+  "application_license": "GPL-3.0-only",
+  "python": {
+    "version": "3.12.2",
+    "source": "https://www.python.org/ftp/python/3.12.2/Python-3.12.2.tgz"
+  },
+  "gui_packages": [
+    {
+      "name": "PyQt6",
+      "version": "6.11.0",
+      "source_files": "https://pypi.org/project/PyQt6/6.11.0/#files"
+    },
+    {
+      "name": "PyQt6-Qt6",
+      "version": "6.11.2",
+      "source_files": "https://download.qt.io/official_releases/qt/6.11/6.11.2/single/qt-everywhere-src-6.11.2.tar.xz"
+    },
+    {
+      "name": "PyQt6-sip",
+      "version": "13.12.0",
+      "source_files": "https://pypi.org/project/PyQt6-sip/13.12.0/#files"
+    },
+    {
+      "name": "cryptography",
+      "version": "50.0.2",
+      "source_files": "https://pypi.org/project/cryptography/50.0.2/#files"
+    },
+    {
+      "name": "PyInstaller",
+      "version": "6.5.0",
+      "source_files": "https://pypi.org/project/PyInstaller/6.5.0/#files"
+    },
+    {
+      "name": "pyinstaller-hooks-contrib",
+      "version": "2024.3",
+      "source_files": "https://pypi.org/project/pyinstaller-hooks-contrib/2024.3/#files"
+    }
+  ],
+  "engine_packages": [
+    {
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "source_files": "https://pypi.org/project/PyYAML/6.0.3/#files"
+    },
+    {
+      "name": "antlr4-python3-runtime",
+      "version": "4.9.3",
+      "source_files": "https://pypi.org/project/antlr4-python3-runtime/4.9.3/#files"
+    },
+    {
+      "name": "certifi",
+      "version": "2026.7.22",
+      "source_files": "https://pypi.org/project/certifi/2026.7.22/#files"
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.1",
+      "source_files": "https://pypi.org/project/charset-normalizer/3.5.1/#files"
+    },
+    {
+      "name": "colorama",
+      "version": "0.4.6",
+      "source_files": "https://pypi.org/project/colorama/0.4.6/#files"
+    },
+    {
+      "name": "colorlog",
+      "version": "6.12.0",
+      "source_files": "https://pypi.org/project/colorlog/6.12.0/#files"
+    },
+    {
+      "name": "flatbuffers",
+      "version": "25.12.19",
+      "source_files": "https://pypi.org/project/flatbuffers/25.12.19/#files"
+    },
+    {
+      "name": "homr",
+      "version": "0.7.0+5e51b434",
+      "source_files": "https://pypi.org/project/homr/0.7.0+5e51b434/#files"
+    },
+    {
+      "name": "idna",
+      "version": "3.19",
+      "source_files": "https://pypi.org/project/idna/3.19/#files"
+    },
+    {
+      "name": "numpy",
+      "version": "2.5.3",
+      "source_files": "https://pypi.org/project/numpy/2.5.3/#files"
+    },
+    {
+      "name": "omegaconf",
+      "version": "2.3.1",
+      "source_files": "https://pypi.org/project/omegaconf/2.3.1/#files"
+    },
+    {
+      "name": "onnxruntime",
+      "version": "1.30.0",
+      "source_files": "https://pypi.org/project/onnxruntime/1.30.0/#files"
+    },
+    {
+      "name": "opencv-python-headless",
+      "version": "4.14.0.94",
+      "source_files": "https://pypi.org/project/opencv-python-headless/4.14.0.94/#files"
+    },
+    {
+      "name": "opencv-python",
+      "version": "5.0.0.93",
+      "source_files": "https://pypi.org/project/opencv-python/5.0.0.93/#files"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "source_files": "https://pypi.org/project/packaging/26.3/#files"
+    },
+    {
+      "name": "pillow",
+      "version": "12.3.0",
+      "source_files": "https://pypi.org/project/pillow/12.3.0/#files"
+    },
+    {
+      "name": "protobuf",
+      "version": "7.36.1",
+      "source_files": "https://pypi.org/project/protobuf/7.36.1/#files"
+    },
+    {
+      "name": "pyclipper",
+      "version": "1.4.0",
+      "source_files": "https://pypi.org/project/pyclipper/1.4.0/#files"
+    },
+    {
+      "name": "pypdfium2",
+      "version": "5.13.0",
+      "source_files": "https://pypi.org/project/pypdfium2/5.13.0/#files"
+    },
+    {
+      "name": "rapidocr",
+      "version": "3.9.2",
+      "source_files": "https://pypi.org/project/rapidocr/3.9.2/#files"
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "source_files": "https://pypi.org/project/requests/2.34.2/#files"
+    },
+    {
+      "name": "shapely",
+      "version": "2.1.2",
+      "source_files": "https://pypi.org/project/shapely/2.1.2/#files"
+    },
+    {
+      "name": "six",
+      "version": "1.17.0",
+      "source_files": "https://pypi.org/project/six/1.17.0/#files"
+    },
+    {
+      "name": "tqdm",
+      "version": "4.70.1",
+      "source_files": "https://pypi.org/project/tqdm/4.70.1/#files"
+    },
+    {
+      "name": "types-Pillow",
+      "version": "10.2.0.20240822",
+      "source_files": "https://pypi.org/project/types-Pillow/10.2.0.20240822/#files"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "source_files": "https://pypi.org/project/typing_extensions/4.16.0/#files"
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0",
+      "source_files": "https://pypi.org/project/urllib3/2.8.0/#files"
+    }
+  ],
+  "homr": {
+    "commit": "5e51b434b3149286dae1448603527923b62ef9f2",
+    "license": "AGPL-3.0",
+    "complete_upstream_source_in_archive": true
+  },
+  "models": {
+    "segmentation\\segnet_308-3296ccd40960f90ca6ab9c035cca945675d30a0f.onnx": "6ed36640db4ef5d223098b6d5efe4eda97c66b24a2c72faab8a018c749003a8d",
+    "transformer\\decoder_pytorch_model_426-b6fd20809a8dcaf10dfd39a4ca4f64c6f056e644.onnx": "8652b5c2e3129775ca9109eb180c16c3615413ce38005adc8ce5966c3c76737c",
+    "transformer\\encoder_pytorch_model_426-b6fd20809a8dcaf10dfd39a4ca4f64c6f056e644.onnx": "1513e83ae281ef06cdb8f08451b59f06c56536f13bd3418b4fd13227543dc4ff"
+  },
+  "model_source": "https://github.com/liebharc/homr/releases/tag/onnx_checkpoints",
+  "model_rights_review": "Upstream flags training-data rights questions; see THIRD-PARTY-NOTICES.md.",
+  "engine_reuse": "Byte-identical frozen engine from the previous complete portable distribution, with matching pinned source and models."
+}

@@ -1,0 +1,23 @@
+PDF2Muse 0.3.0 — Windows x64
+
+30-day trial from account registration; US$9.90 one-time perpetual access.
+No subscription or automatic renewal. Applicable taxes appear at Creem checkout.
+Online registration and activation are required. Refresh online at least every 7 days.
+Recognition runs locally; scores are not uploaded to the account service.
+Python, Qt, HOMR, CPU model files and runtime libraries are included.
+MuseScore Studio is optional and installed separately.
+
+The operator name, jurisdiction and branded support email are pending.
+Live purchases are disabled until these details and Creem review/configuration are complete.
+The trial and valid activation codes work independently of payment availability.
+
+PDF2Muse code is GPL-3.0-only. This notice does not limit GPL rights.
+HOMR and its weights retain their upstream AGPLv3 license and notices.
+Source is offered alongside the installer, without embedding source in this package:
+https://pub-e428980b60994e0cae95ecf224953755.r2.dev/PDF2Muse-0.3.0-corresponding-source.zip
+https://github.com/catanddogmiaomiao/pdf2MuseScore/tree/release/windows-installer-legal
+
+Legal documents are available offline in _internal/legal/index.html and online:
+https://pdf2muse.top/legal/
+Installing the program does not waive consumer rights. The GPL license controls code rights.
+Uninstalling preserves local scores, the library, output files and account settings.

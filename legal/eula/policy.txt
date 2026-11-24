@@ -1,0 +1,22 @@
+用户许可协议 / End User License Agreement
+Version: 2026-11-24
+
+GPLv3软件许可 / GPLv3 software license
+PDF2Muse 自有程序代码依据 GNU GPL 第3版（GPL-3.0-only）提供。您可按 GPLv3 使用、复制、研究、修改与再分发，包括商业使用；再分发时须遵守其许可证、通知与对应源码义务。这里的用户许可协议不取代 GPLv3，也不附加禁止逆向、修改、再分发或商业使用的限制。
+PDF2Muse application code is licensed under GNU GPL version 3 (GPL-3.0-only). You may use, copy, study, modify and redistribute it, including commercially, under GPLv3. Redistribution must comply with its license, notices and corresponding-source obligations. This EULA does not replace GPLv3 or add restrictions on reverse engineering, modification, redistribution or commercial use.
+
+账号与购买安排 / Accounts and purchases
+官方发行版提供账号、30天试用及 US$9.90 一次性永久激活；联网与账号安排见服务与销售条款。支付取得的是官方版本的账号授权履约，不是对开源代码的独占权。您依据 GPLv3 取得的权利不受这些安排限制。
+The official distribution offers accounts, a 30-day trial and US$9.90 one-time perpetual activation. See the service/sales terms for connectivity and account arrangements. Purchase provides fulfillment of an official account entitlement, not exclusive rights to open-source code. GPLv3 rights remain unaffected.
+
+第三方组件与商标 / Third-party components and trademarks
+HOMR 采用 AGPLv3；PyQt6 采用 GPLv3；Qt、Python、ONNX Runtime、PDFium 和其他依赖保留各自许可证与通知。MuseScore 不随安装包提供。软件名称、商标、网站品牌与任何乐谱版权不因软件开源许可证自动许可。
+HOMR uses AGPLv3 and PyQt6 uses GPLv3. Qt, Python, ONNX Runtime, PDFium and other dependencies retain their respective licenses and notices. MuseScore is not bundled. Software licenses do not automatically grant trademarks, website branding or score copyrights.
+
+对应源码 / Corresponding source
+安装包不内嵌源码。下载页同时提供本次发行版本的对应源码压缩包和版本化仓库入口；获取源码无需付费。压缩包包含应用、构建和安装脚本及所用 HOMR 完整上游源码，第三方组件的版本与来源见随包清单。若源码链接不可访问，请在重新分发前修复，不能以随时变化的默认分支替代对应版本。
+Source is not embedded in the installer. The download page provides the corresponding-source archive and versioned repository link alongside this release, without a source-access fee. The archive contains the application, build/installer scripts and complete upstream HOMR source used. Bundled notices identify dependency versions and sources. Repair unavailable source links before redistribution; a moving default branch is not a substitute for the corresponding version.
+
+保修与法定权利 / Warranty and statutory rights
+GPLv3 的免责与责任条款在适用法律允许的范围内适用。购买交易的任何额外保证、消费者法定权利或退款救济不因开源免责而取消。请在商业或演出使用前核对识别结果并备份文件。
+GPLv3 warranty and liability provisions apply to the extent permitted by law. Open-source disclaimers do not remove additional purchase warranties, mandatory consumer rights or refund remedies. Check recognition results and back up files before commercial or performance use.

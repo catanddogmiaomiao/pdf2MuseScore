@@ -12,6 +12,9 @@ if __name__ == "__main__":
         destination = Path(sys.argv[3])
         destination.mkdir(parents=True, exist_ok=True)
         try:
+            from pdf2muse.licensing import AccountClient
+            if not AccountClient().active():
+                raise RuntimeError('Sign in with an active trial or perpetual license before verification.')
             engine = find_homr_python()
             if not engine or engine.name.lower() != 'homr.exe':
                 raise RuntimeError('Bundled engine not found')

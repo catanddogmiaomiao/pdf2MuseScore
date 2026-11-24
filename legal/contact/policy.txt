@@ -1,0 +1,18 @@
+联系与产品信息 / Contact and Product Information
+Version: 2026-11-24
+
+产品信息 / Product
+PDF2Muse 是本地 PDF 五线谱识别工具，导出 MusicXML。Windows x64；需账号；注册后30天试用；US$9.90 一次性永久授权。非订阅，无自动续费。识别运行环境与模型包含在安装包内；MuseScore Studio 可另行安装。
+PDF2Muse is a local PDF sheet-music recognition tool exporting MusicXML. Windows x64; an account is required; 30-day trial from registration; US$9.90 one-time perpetual access. No subscription or automatic renewal. The installer includes recognition runtime and models; MuseScore Studio is separately available.
+
+待完善的运营资料 / Pending operator information
+运营主体：【待填写】；国家或地区：【待填写】；品牌客服及隐私邮箱：【待填写】。在这些资料完善并可达、与 Creem 商户及收据资料一致之前，不开放正式付款，也不宣称已通过 Creem 审核。
+Legal operator: [TO BE COMPLETED]; country/region: [TO BE COMPLETED]; branded support/privacy email: [TO BE COMPLETED]. Live payments remain closed until these details are completed, reachable and consistent with Creem merchant/receipt records. No Creem approval is claimed.
+
+技术问题 / Technical issues
+一般、非敏感的软件问题可在公开 GitHub 仓库提交。不要公开订单号、邮箱、密码、恢复码、授权码、账号令牌或私人乐谱。订单相关支持应使用收据所列的私密客服渠道；也可联系 Creem 处理其付款服务问题。
+General, non-sensitive software issues can be reported in the public GitHub repository. Never post order IDs, email addresses, passwords, recovery/activation codes, account tokens or private scores publicly. Use private receipt support contacts for orders; Creem can assist with its payment services.
+
+支持时效 / Support timing
+正式收款后，按 Creem 要求在3个工作日内响应客服请求。授权通常在付款通知核验后自动生效；若未生效，请刷新账号授权并通过私密客服提交订单信息，不要重复付款。
+After live sales open, support requests receive a response within 3 business days under Creem requirements. Activation normally follows verified payment notification. If missing, refresh entitlement and privately contact support with the order details; do not pay again.

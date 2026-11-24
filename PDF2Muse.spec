@@ -2,12 +2,16 @@
 
 from pathlib import Path
 import importlib.metadata
+import sys
 
 
 project_root = Path(SPECPATH).resolve()
 assets_dir = project_root / "assets"
 qt_licenses = []
-for name in ('PyQt6', 'PyQt6-Qt6', 'PyQt6-sip'):
+python_license = Path(sys.base_prefix) / 'LICENSE.txt'
+if python_license.is_file():
+    qt_licenses.append((str(python_license), 'licenses/Python'))
+for name in ('PyQt6', 'PyQt6-Qt6', 'PyQt6-sip', 'cryptography'):
     distribution = importlib.metadata.distribution(name)
     for file in distribution.files or []:
         if any(part.lower().startswith(('license', 'copying', 'notice')) for part in file.parts):
@@ -20,6 +24,8 @@ a = Analysis(
     pathex=[str(project_root)],
     binaries=[],
     datas=[
+        (str(project_root / "legal"), "legal"),
+        (str(project_root / "LICENSE"), "."),
         (str(project_root / "pdf2muse" / "homr_runner.py"), "pdf2muse"),
         (str(project_root / "setup-homr.ps1"), "."),
         (str(project_root / "requirements-homr.txt"), "."),
