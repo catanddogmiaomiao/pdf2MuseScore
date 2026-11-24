@@ -1,0 +1,38 @@
+服务与销售条款 / Terms of Service and Sale
+Version: 2026-11-24
+
+主体与适用范围 / Operator and scope
+产品为 PDF2Muse Windows。运营主体：【待填写】；国家或地区：【待填写】；客服邮箱：【待填写】。本条款管理官方账号、试用、授权履约和销售，不限制适用开源许可证授予的软件权利。在线购买在主体资料、客服及 Creem 配置与审核完善后才开放。
+The product is PDF2Muse for Windows. Legal operator: [TO BE COMPLETED]; country/region: [TO BE COMPLETED]; support email: [TO BE COMPLETED]. These terms govern official accounts, trials, entitlement delivery and sales, without restricting software rights granted by applicable open-source licenses. Online purchases open only after operator details, support, Creem configuration and review are ready.
+
+产品与限制 / Product and limitations
+软件在 Windows 10（1809或更新）/11 x64 上通过 HOMR 将 PDF 五线谱识别为 MusicXML，包含识别运行环境和模型。MuseScore Studio 是可选的独立编辑软件，需另行安装。识别可能出错或耗尽内存；成功导出不保证音高、节奏或版式完全准确，请逐项对照原谱。软件不提供乐谱版权，也不代表 MuseScore 官方产品。
+The app converts PDF sheet music into MusicXML with HOMR on Windows 10 (1809 or newer)/11 x64 and includes the recognition runtime and models. MuseScore Studio is an optional, separately installed editor. Recognition can be inaccurate or exhaust memory; export success does not guarantee correct pitches, rhythms or layout. Check results against the original. The app grants no score copyrights and is not an official MuseScore product.
+
+账号与30天试用 / Accounts and 30-day trial
+使用官方识别界面前须注册并登录。试用从服务器记录的注册时刻起连续计算 30×24 小时，重新安装或重新登录不重置同一账号的试用。试用结束后，官方界面中的识别功能需要有效的永久授权；已有本地文件仍归您所有。请保管密码与恢复码，不要把恢复码公开。可使用恢复码或已验证邮箱验证码自助找回账号。
+Register and sign in to use recognition in the official build. Trial access lasts 30×24 hours from the server-recorded registration time. Reinstallation or signing in again does not reset that account’s trial. Recognition in the official interface requires an active perpetual entitlement after the trial; existing local files remain yours. Protect your password and recovery code. A recovery code or a code sent to the verified email provides self-service recovery.
+
+永久授权与交付 / Perpetual access and delivery
+永久授权价格为 US$9.90，一次性购买，不自动续费。适用税费和最终应付金额由 Creem 结账页在付款前展示。授权可由有效授权码绑定到已登录账号，或在 Creem 付款完成且服务器核验通知后绑定。授权码为单次兑换，永久授权绑定账号。永久是指已购版本的官方使用授权无固定到期日，不承诺终身新增功能、免费重大升级或服务永不间断。
+Perpetual access costs US$9.90 as a one-time purchase, without automatic renewal. Creem shows applicable taxes and the final total before payment. Redeem a valid single-use code while signed in, or purchase through Creem and wait for a verified server notification. Entitlements belong to the account. Perpetual means the official entitlement for the purchased version has no fixed expiry; it does not promise every future feature, free major upgrades or uninterrupted service forever.
+
+联网要求与退款后的授权 / Connectivity and reversals
+注册、登录、支付和激活需要联网；签名授权最长离线有效 7 天，之后须联网刷新。识别仍在本机执行。这一联网要求同样适用于永久账号；永久指不按月或按年收费。全额退款或付款争议可能撤销对应购买的官方账号授权；其他独立有效授权不受该笔订单影响。
+Registration, sign-in, payment and activation require internet access. Signed access certificates work offline for up to 7 days and then need an online refresh, including on perpetual accounts. Recognition remains local. Perpetual access carries no monthly or annual fee. Full refunds or payment disputes may revoke the associated official account entitlement; independent valid grants remain separate.
+
+Creem结账 / Creem checkout
+开放购买后，Creem 作为记录商户向买家转售产品，处理支付、适用税费、收据/发票及相关退款。付款方式以 Creem 对您所在地区、币种及订单实际提供的选项为准，我们不承诺所有方式在所有地区可用。产品功能、交付及技术支持由 PDF2Muse 运营方负责。Creem 买家条款及隐私声明在结账时一并适用，相关支付交易冲突依其买家条款及强制性法律处理。
+When purchasing is open, Creem acts as merchant of record and resells the product to buyers, handling payment, applicable tax, receipts/invoices and related refunds. Available methods depend on the options Creem actually offers for your region, currency and order; no universal method availability is promised. The PDF2Muse operator remains responsible for product functionality, delivery and technical support. Creem Buyer Terms and Privacy Notice also apply at checkout; payment conflicts are governed by those terms and mandatory law.
+
+合法使用与开源权利 / Lawful use and open-source rights
+仅处理您有权使用的乐谱，遵守版权与适用法律。不得攻击或未经授权访问账号服务、冒用他人账号或提交欺诈付款。PDF2Muse 代码采用 GPLv3；HOMR 与其他依赖按各自许可证提供。GPL 允许的运行、研究、修改、复制和再分发权不因账号或销售条款而缩减；这些条款不构成禁止修改授权逻辑的附加限制。
+Process only scores you are authorized to use and respect copyright and applicable law. Do not attack or gain unauthorized access to the account service, impersonate another account holder or submit fraudulent payments. PDF2Muse code is GPLv3; HOMR and other dependencies retain their own licenses. Account/sales terms do not reduce GPL rights to run, study, modify, copy or redistribute and impose no additional prohibition on modifying authorization logic.
+
+支持、退款与责任 / Support, refunds and liability
+退款依本网站退款政策和 Creem 流程办理。正式收款前将提供可达的品牌客服邮箱，并按 Creem 要求在 3 个工作日内响应。法律允许范围内软件按现状提供，但不排除欺诈、故意不当行为、依法不得限制的责任、产品符合性救济或任何强制性消费者权利。永久授权的价格不构成排除法定责任的依据。
+Refunds follow our refund policy and Creem procedures. Before live sales we will provide a reachable branded support email and respond within 3 business days as required by Creem. The software is provided as-is to the extent permitted by law, without excluding fraud, intentional misconduct, liability that cannot lawfully be limited, product-conformity remedies or mandatory consumer rights. The license price does not exclude statutory liabilities.
+
+变更与争议 / Changes and disputes
+试用与价格变更仅适用于其明确说明的未来范围，不追溯取消已合法取得的永久授权。重大变更会更新日期并在必要时通知。请先通过客服及 Creem 解决订单争议；本条款不剥夺法定投诉、法院或其他救济途径。运营方准据法及联系方式待主体信息确认后补全，不排除消费者惯常居所适用的强制性保护。
+Trial or price changes apply only prospectively as disclosed and do not retrospectively cancel legitimately acquired perpetual entitlements. Material changes update the date and receive notice when needed. First seek support and Creem assistance for order disputes; statutory complaints, courts and other remedies remain available. Operator governing-law and contact details will be finalized with its identity, without excluding mandatory protection in a consumer’s habitual residence.

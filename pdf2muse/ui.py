@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import threading
 
-from PyQt6.QtCore import QPointF, QSize, QThread, Qt, pyqtSignal
+from PyQt6.QtCore import QPointF, QSize, QThread, QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
@@ -19,6 +19,8 @@ from .library_ui import LibraryPage
 from .i18n import tr, set_language, retranslate, LANGUAGES
 from .converter import ConversionError, ConversionResult, ConversionCancelled, MemoryConversionError, convert_with_homr
 from .tools import find_homr_python, find_musescore, open_in_musescore, open_output_folder
+from .licensing import AccountClient
+from .account_ui import AccountDialog, show_legal
 
 
 C = {
@@ -334,6 +336,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.config = AppConfig()
+        self.account = AccountClient()
         set_language(self.config.language)
         self.pdf_path: Path | None = None
         self.output_path: Path | None = None
@@ -422,6 +425,12 @@ class MainWindow(QMainWindow):
             row.addWidget(button)
         self.conversion_tab.setChecked(True)
         row.addStretch()
+        account = QPushButton('账号 / Account')
+        account.clicked.connect(self._show_account)
+        row.addWidget(account)
+        legal = QPushButton('法律 / Legal')
+        legal.clicked.connect(lambda: show_legal(self))
+        row.addWidget(legal)
         row.addWidget(settings)
         return row
 
@@ -553,11 +562,11 @@ class MainWindow(QMainWindow):
         footer.setFixedHeight(32)
         row = QHBoxLayout(footer)
         row.setContentsMargins(4, 0, 4, 0)
-        label = QLabel(tr("免费  ·  本地识别  ·  无需上传"))
+        label = QLabel(tr("30天试用  ·  本地识别  ·  无需上传"))
         label.setObjectName("muted")
         row.addWidget(label)
         row.addStretch()
-        version = QLabel("PDF2Muse 0.2 · HOMR")
+        version = QLabel("PDF2Muse 0.3.0 · HOMR")
         version.setObjectName("muted")
         row.addWidget(version)
         return footer
@@ -649,6 +658,10 @@ class MainWindow(QMainWindow):
     def _start_conversion(self) -> None:
         if not self.pdf_path or (self.worker and self.worker.isRunning()):
             return
+        if not self.account.active():
+            self._show_account()
+            if not self.account.active():
+                return
         homr_python = find_homr_python(self.config.homr_python)
         if not homr_python:
             QMessageBox.warning(self, tr("尚未配置 HOMR"), tr("请先运行 setup-homr.ps1 安装本地识别环境，再在设置中选择该环境的 python.exe。"))
@@ -684,6 +697,9 @@ class MainWindow(QMainWindow):
             self._cancel_conversion()
         else:
             self._start_conversion()
+
+    def _show_account(self) -> None:
+        AccountDialog(self, self.account).exec()
 
     def _receive_log(self, line: str) -> None:
         self._log_lines.append(line)

@@ -1,0 +1,26 @@
+退款与撤回政策 / Refund and Withdrawal Policy
+Version: 2026-11-24
+
+购买及政策范围 / Purchase and scope
+本政策适用于通过 Creem 购买的 PDF2Muse 官方永久账号授权：US$9.90，一次付款，无自动续费。试用期为注册后30天；试用不会自动扣款。运营主体及客服邮箱仍待补全，在线购买尚未开放。
+This policy applies to official PDF2Muse perpetual account access purchased through Creem: US$9.90, paid once, without automatic renewal. The 30-day registration trial never charges automatically. Operator/support details are still incomplete and online purchases are not open.
+
+14天退款 / 14-day refund
+购买后14个日历日内，您可申请该笔购买的全额退款；请提供订单号、购买日期及足以定位订单的信息，不要发送完整卡号或密码。误扣款、重复购买、未交付或无法按描述工作的问题也请及时联系。该商业退款安排不限制更长的法定期限、强制性救济或 Creem 按其条款作出的退款。
+Within 14 calendar days after purchase you may request a full refund of that purchase. Provide the order ID, purchase date and enough information to locate it; never send a full card number or password. Report mistaken charges, duplicates, non-delivery or failure to work as described promptly. This commercial refund arrangement does not limit longer statutory periods, mandatory remedies or refunds issued by Creem under its terms.
+
+申请路径与处理 / Request and processing
+请先使用收据所列商户客服联系方式申请。正式收款前我们会在网站、账号页与收据中设置一致的品牌客服邮箱，并在3个工作日内响应。若问题未解决，可通过 Creem 客户门户或联系页面请求协助。Creem 依其买家条款及适用法律处理其交易的退款和拒付；退款通常退回原支付方式，到账时间取决于支付服务商，不能保证即时到账。
+First contact the merchant using the support details on the receipt. Before live sales we will publish a matching branded support email on the website, account page and receipts and respond within 3 business days. If unresolved, seek assistance through Creem’s customer portal or contact page. Creem handles refunds and chargebacks for its transactions under its Buyer Terms and applicable law. Refunds normally return to the original payment method; settlement time depends on the provider and is not promised to be immediate.
+
+消费者撤回权 / Consumer withdrawal rights
+欧洲及其他地区消费者可能享有法定撤回权。对于立即交付且不以有形载体提供的数字内容，仅在法律要求的事先明确同意和确认条件满足时，法定撤回权才可能受到影响；下载、注册、安装或试用本身不被我们单独视为放弃法定权利。我们的14天商业退款安排不因立即激活而自动取消。
+Consumers in Europe and other regions may have statutory withdrawal rights. For immediately supplied digital content without a tangible medium, those rights may be affected only where required prior express consent and acknowledgment conditions are met. Downloading, registering, installing or trying the app alone is not treated by us as a waiver. Immediate activation does not automatically cancel our commercial 14-day refund offer.
+
+退款后的账号与开源 / After a refund and open source
+全额退款后，对应订单的官方账号永久授权将撤销；若原试用期尚未结束或存在其他有效授权，仍按该有效安排使用。部分退款是否影响授权以明确的处理结果为准。本地乐谱不会被远程删除，GPLv3 已授予的软件权利不会被退款政策追溯取消。
+A full refund revokes the official account grant associated with that order. Any remaining original trial or independent valid grant continues on its own terms. The effect of a partial refund follows its expressly agreed resolution. Local scores are not remotely deleted, and GPLv3 software rights are not retrospectively canceled by this policy.
+
+争议与优先关系 / Disputes and priority
+请先联系商户及 Creem 尝试解决付款问题。本文不阻碍您行使强制性消费者权利或依法向支付机构提出争议。Creem 交易同时适用当时有效的买家条款；如本政策与强制性法律或适用 Creem 条款冲突，按相关强制性规则及 Creem 交易规则处理。
+Please contact the merchant and Creem first to resolve payment issues. This policy does not prevent mandatory consumer rights or lawful disputes with a payment provider. Creem transactions also follow its then-current Buyer Terms; mandatory law and applicable Creem transaction rules govern conflicts.
